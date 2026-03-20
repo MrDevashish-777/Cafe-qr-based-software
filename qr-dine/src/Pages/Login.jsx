@@ -1,6 +1,15 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+const roleRedirects = {
+  super_admin: '/super-admin',
+  cafe_admin: '/register-staff?access=true',
+  kitchen: '/chef',
+  staff: '/waiter',
+  chef: '/chef',
+  waiter: '/waiter',
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -11,7 +20,6 @@ const Login = () => {
   });
   const [error, setError] = useState('');
 
-  // Handle input change
   const handleChange = (e) => {
     setFormData(prev => ({
       ...prev,
@@ -19,7 +27,6 @@ const Login = () => {
     }));
   };
 
-  // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -27,14 +34,12 @@ const Login = () => {
     const { username, password } = formData;
 
     // Hardcoded admin login check on frontend
-      if (username === 'admin' && password === 'admin123') {
-        localStorage.setItem('adminLoggedInOnce', 'true');
-      // Directly navigate to admin panel without backend call
+    if (username === 'admin' && password === 'admin123') {
+      localStorage.setItem('adminLoggedInOnce', 'true');
       navigate('/register-staff?access=true');
       return;
     }
 
-    // For other users, call backend login
     try {
       const res = await axios.post(
         process.env.REACT_APP_API_URL_AUTH_LOGIN || 'http://localhost:5000/api/auth/login',
@@ -43,12 +48,10 @@ const Login = () => {
 
       if (res.status === 200 && res.data.user) {
         const role = res.data.user.role;
+        const redirectTo = roleRedirects[role];
 
-        // Redirect based on role
-        if (role === 'chef') {
-          navigate('/chef');
-        } else if (role === 'waiter') {
-          navigate('/waiter');
+        if (redirectTo) {
+          navigate(redirectTo);
         } else {
           setError('Unknown role.');
         }

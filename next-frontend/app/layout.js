@@ -1,4 +1,4 @@
-﻿import "./globals.css";
+import "./globals.css";
 
 export const metadata = {
   title: "QRDine",
@@ -8,7 +8,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-orange-50 text-gray-900">
+      <body className="min-h-screen text-slate-900">
         {children}
       </body>
     </html>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../../lib/api";
@@ -39,9 +39,20 @@ export default function AdminMenuPage() {
     return `/api/admin/menu${qs}`;
   }, [adminCafeId]);
 
+  const stats = useMemo(() => {
+    const total = items.length;
+    const available = items.filter((i) => i.isAvailable).length;
+    const categories = new Set(items.map((i) => i.category)).size;
+    return { total, available, categories };
+  }, [items]);
+
   const requireLogin = () => {
     const token = getToken();
     if (!token) {
+      window.location.href = "/admin/login";
+      return false;
+    }
+    if (role && role !== "cafe_admin" && role !== "super_admin") {
       window.location.href = "/admin/login";
       return false;
     }
@@ -64,7 +75,6 @@ export default function AdminMenuPage() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const createItem = async (e) => {
@@ -183,13 +193,33 @@ export default function AdminMenuPage() {
   };
 
   return (
-    <main className="p-6 max-w-5xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-extrabold text-brand">Admin Menu</h1>
-          <div className="text-sm text-gray-600 mt-1">Tenant-scoped CRUD via <code className="font-mono">/api/admin/menu</code></div>
-        </div>
-        <div className="flex gap-2">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 px-6 py-10">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <header className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-orange-700 shadow">
+              Admin Menu Console
+            </div>
+            <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold text-slate-900">Menu management</h1>
+            <p className="mt-2 text-sm text-slate-600">Create, update, and publish dishes across your cafe.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center">
+              <div className="text-xl font-bold text-slate-900">{stats.total}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Items</div>
+            </div>
+            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center">
+              <div className="text-xl font-bold text-slate-900">{stats.available}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Available</div>
+            </div>
+            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center">
+              <div className="text-xl font-bold text-slate-900">{stats.categories}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Categories</div>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" onClick={load} disabled={loading}>Refresh</Button>
           <Button
             variant="outline"
@@ -201,98 +231,94 @@ export default function AdminMenuPage() {
             Logout
           </Button>
         </div>
-      </div>
 
-      {role === "super_admin" && (
-        <Card className="mt-6">
-          <CardContent>
-            <div className="font-bold">Super Admin: choose a cafeId</div>
-            <div className="text-sm text-gray-600 mt-1">For <code className="font-mono">super_admin</code> tokens, provide a <code className="font-mono">cafeId</code> to scope listing and writes.</div>
-            <div className="mt-3 flex gap-2">
-              <Input value={adminCafeId} onChange={(e) => setAdminCafeId(e.target.value)} placeholder="cafeId (ObjectId)" />
-              <Button variant="outline" onClick={load} disabled={loading}>Load</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {role === "super_admin" && (
+          <Card className="border border-orange-100 shadow-xl">
+            <CardContent>
+              <div className="font-bold">Super Admin: choose a cafeId</div>
+              <div className="text-sm text-gray-600 mt-1">Provide a cafeId to scope listing and writes.</div>
+              <div className="mt-3 flex gap-2">
+                <Input value={adminCafeId} onChange={(e) => setAdminCafeId(e.target.value)} placeholder="cafeId (ObjectId)" />
+                <Button variant="outline" onClick={load} disabled={loading}>Load</Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {error && <div className="mt-4 text-red-700 font-semibold">{error}</div>}
+        {error && <div className="text-red-700 font-semibold">{error}</div>}
 
-      <Card className="mt-6">
-        <CardContent>
-          <h2 className="text-xl font-bold mb-3">Add Item</h2>
-          <form onSubmit={createItem} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
-            <Input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" type="number" required />
-            <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" required />
-            <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="Type (veg/non-veg)" />
-            <div className="md:col-span-2">
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={3} />
-            </div>
-            <div className="md:col-span-2">
-              <Button className="w-full" type="submit" disabled={loading}>
-                {loading ? "Saving…" : "Create"}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-[0.95fr_1.05fr] gap-6">
+          <Card className="border border-orange-100 shadow-xl">
+            <CardContent>
+              <h2 className="text-xl font-bold mb-4">Add new item</h2>
+              <form onSubmit={createItem} className="grid grid-cols-1 gap-3">
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
+                <Input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" type="number" required />
+                <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" required />
+                <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="Type (veg/non-veg)" />
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" rows={3} />
+                <Button className="w-full" type="submit" disabled={loading}>
+                  {loading ? "Saving..." : "Create item"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
 
-      <div className="mt-8">
-        <h2 className="text-xl font-extrabold">Items</h2>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {items.map((it) => {
-            const editing = editingId === it._id;
-            return (
-              <Card key={it._id}>
-                <CardContent>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-extrabold text-lg">{it.name}</div>
-                      <div className="text-sm text-gray-600">{it.category} · {it.type}</div>
-                    </div>
-                    <div className={`px-3 py-1 rounded-full text-sm font-semibold border ${it.isAvailable ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-700 border-gray-200"}`}>
-                      {it.isAvailable ? "Available" : "Unavailable"}
-                    </div>
-                  </div>
-
-                  {editing ? (
-                    <div className="mt-4 space-y-2">
-                      <Input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Name" />
-                      <Input value={editForm.price} onChange={(e) => setEditForm((p) => ({ ...p, price: e.target.value }))} placeholder="Price" type="number" />
-                      <Input value={editForm.category} onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))} placeholder="Category" />
-                      <Input value={editForm.type} onChange={(e) => setEditForm((p) => ({ ...p, type: e.target.value }))} placeholder="Type (veg/non-veg)" />
-                      <Textarea value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" rows={3} />
-                      <div className="flex gap-2">
-                        <Button onClick={saveEdit} disabled={loading}>Save</Button>
-                        <Button variant="outline" onClick={cancelEdit} disabled={loading}>Cancel</Button>
+          <div className="space-y-4">
+            <h2 className="text-xl font-extrabold">Items</h2>
+            {items.map((it) => {
+              const editing = editingId === it._id;
+              return (
+                <Card key={it._id} className="border border-orange-100 shadow-lg">
+                  <CardContent>
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-extrabold text-lg text-slate-900">{it.name}</div>
+                        <div className="text-sm text-slate-600">{it.category} - {it.type}</div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-xs font-semibold border ${it.isAvailable ? "bg-green-50 text-green-700 border-green-200" : "bg-gray-100 text-gray-700 border-gray-200"}`}>
+                        {it.isAvailable ? "Available" : "Unavailable"}
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      <div className="mt-3 text-sm text-gray-700">{it.description || <span className="text-gray-500">No description</span>}</div>
-                      <div className="mt-3 font-extrabold">₹{Number(it.price || 0).toFixed(2)}</div>
-                    </>
-                  )}
 
-                  {!editing && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Button variant="outline" onClick={() => toggleAvailability(it._id)} disabled={loading}>
-                        {it.isAvailable ? "Mark Unavailable" : "Mark Available"}
-                      </Button>
-                      <Button variant="outline" onClick={() => startEdit(it)} disabled={loading}>Edit</Button>
-                      <Button variant="outline" onClick={() => deleteItem(it._id)} disabled={loading}>Delete</Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+                    {editing ? (
+                      <div className="mt-4 space-y-2">
+                        <Input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Name" />
+                        <Input value={editForm.price} onChange={(e) => setEditForm((p) => ({ ...p, price: e.target.value }))} placeholder="Price" type="number" />
+                        <Input value={editForm.category} onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))} placeholder="Category" />
+                        <Input value={editForm.type} onChange={(e) => setEditForm((p) => ({ ...p, type: e.target.value }))} placeholder="Type (veg/non-veg)" />
+                        <Textarea value={editForm.description} onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" rows={3} />
+                        <div className="flex gap-2">
+                          <Button onClick={saveEdit} disabled={loading}>Save</Button>
+                          <Button variant="outline" onClick={cancelEdit} disabled={loading}>Cancel</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="mt-3 text-sm text-slate-700">{it.description || <span className="text-slate-500">No description</span>}</div>
+                        <div className="mt-3 font-extrabold text-slate-900">INR {Number(it.price || 0).toFixed(2)}</div>
+                      </>
+                    )}
+
+                    {!editing && (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Button variant="outline" onClick={() => toggleAvailability(it._id)} disabled={loading}>
+                          {it.isAvailable ? "Mark unavailable" : "Mark available"}
+                        </Button>
+                        <Button variant="outline" onClick={() => startEdit(it)} disabled={loading}>Edit</Button>
+                        <Button variant="outline" onClick={() => deleteItem(it._id)} disabled={loading}>Delete</Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+
+            {!loading && items.length === 0 && (
+              <div className="text-gray-700">No menu items yet.</div>
+            )}
+          </div>
         </div>
-
-        {!loading && items.length === 0 && (
-          <div className="mt-6 text-gray-700">No menu items yet.</div>
-        )}
       </div>
     </main>
   );

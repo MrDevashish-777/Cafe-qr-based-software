@@ -1,20 +1,69 @@
-﻿@tailwind base;
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --brand-primary: 249 115 22; /* orange-500 */
-  --brand-accent: 251 191 36;  /* amber-400 */
+  --brand-primary: 13 116 96; /* teal */
+  --brand-accent: 245 158 11;  /* amber */
+  --brand-dark: 15 23 42;      /* slate */
+  --brand-light: 255 247 237;  /* warm sand */
 }
 
 html, body {
   height: 100%;
 }
 
-.bg-brand {
-  background-color: rgb(var(--brand-primary));
+body {
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background-color: rgb(var(--brand-light));
 }
 
 .text-brand {
   color: rgb(var(--brand-primary));
+}
+
+.bg-brand {
+  background-color: rgb(var(--brand-primary));
+}
+
+.font-display {
+  font-family: "Fraunces", ui-serif, Georgia, serif;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  backdrop-filter: blur(16px);
+}
+
+.shadow-luxe {
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.18);
+}
+
+.bg-grid {
+  background-image:
+    radial-gradient(rgba(15, 23, 42, 0.1) 1px, transparent 1px),
+    radial-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 26px 26px, 12px 12px;
+  background-position: 0 0, 6px 6px;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+
+.animate-floaty {
+  animation: floaty 6s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../../lib/api";
@@ -19,6 +19,7 @@ function upsertOrder(list, order) {
 export default function KitchenPage() {
   const token = getToken();
   const user = getUser();
+  const role = user?.role || "";
 
   const [cafeIdOverride, setCafeIdOverride] = useState("");
   const cafeId = useMemo(() => cafeIdOverride || user?.cafeId || "", [cafeIdOverride, user?.cafeId]);
@@ -27,6 +28,13 @@ export default function KitchenPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [socketState, setSocketState] = useState("disconnected");
+
+  const stats = useMemo(() => {
+    const total = orders.length;
+    const preparing = orders.filter((o) => o.status === "preparing").length;
+    const ready = orders.filter((o) => o.status === "ready").length;
+    return { total, preparing, ready };
+  }, [orders]);
 
   const load = async () => {
     if (!cafeId) return;
@@ -44,13 +52,16 @@ export default function KitchenPage() {
 
   useEffect(() => {
     if (!token) {
-      window.location.href = "/admin/login";
+      window.location.href = "/chef/login";
+      return;
     }
-  }, [token]);
+    if (role && role !== "kitchen") {
+      window.location.href = "/chef/login";
+    }
+  }, [token, role]);
 
   useEffect(() => {
     if (cafeId) load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cafeId]);
 
   useEffect(() => {
@@ -88,74 +99,95 @@ export default function KitchenPage() {
   };
 
   return (
-    <main className="p-6 max-w-6xl mx-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-extrabold text-brand">Kitchen Dashboard</h1>
-          <div className="text-sm text-gray-600 mt-1">Live updates: <span className="font-semibold">{socketState}</span></div>
-        </div>
-        <div className="flex gap-2">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-amber-50 px-6 py-10">
+      <div className="mx-auto max-w-6xl space-y-8">
+        <header className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-orange-700 shadow">
+              Kitchen Operations
+            </div>
+            <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold text-slate-900">Kitchen dashboard</h1>
+            <p className="mt-2 text-sm text-slate-600">Live orders, prep status, and handoff tracking.</p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center">
+              <div className="text-xl font-bold text-slate-900">{stats.total}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Total</div>
+            </div>
+            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center">
+              <div className="text-xl font-bold text-slate-900">{stats.preparing}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Preparing</div>
+            </div>
+            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center">
+              <div className="text-xl font-bold text-slate-900">{stats.ready}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Ready</div>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="text-sm text-slate-600">Socket: <span className="font-semibold">{socketState}</span></div>
           <Button variant="outline" onClick={load} disabled={!cafeId || loading}>Refresh</Button>
         </div>
-      </div>
 
-      {!user?.cafeId && (
-        <Card className="mt-6">
-          <CardContent>
-            <div className="font-bold">Cafe scope</div>
-            <div className="text-sm text-gray-600 mt-1">Your user token does not include a <code className="font-mono">cafeId</code>. Enter one to view orders.</div>
-            <div className="mt-3 flex gap-2">
-              <Input value={cafeIdOverride} onChange={(e) => setCafeIdOverride(e.target.value)} placeholder="cafeId (ObjectId)" />
-              <Button variant="outline" onClick={load} disabled={!cafeIdOverride || loading}>Load</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {error && <div className="mt-4 text-red-700 font-semibold">{error}</div>}
-
-      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {orders.map((o) => (
-          <Card key={o._id}>
+        {!user?.cafeId && (
+          <Card className="border border-orange-100 shadow-xl">
             <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-extrabold">Table {o.tableNumber}</div>
-                  <div className="text-sm text-gray-600">{o.customerName} · {o.phone}</div>
-                </div>
-                <div className="px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 font-semibold">
-                  {o.status}
-                </div>
-              </div>
-
-              <div className="mt-3 space-y-1 text-sm">
-                {o.items.map((it, idx) => (
-                  <div key={idx} className="flex justify-between">
-                    <span>{it.name} × {it.qty}</span>
-                    <span>₹{(it.price * it.qty).toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-3 flex justify-between font-extrabold">
-                <span>Total</span>
-                <span>₹{Number(o.totalAmount || 0).toFixed(2)}</span>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setStatus(o._id, "preparing")} disabled={loading}>Preparing</Button>
-                <Button variant="outline" onClick={() => setStatus(o._id, "ready")} disabled={loading}>Ready</Button>
-                <Button variant="outline" onClick={() => setStatus(o._id, "served")} disabled={loading}>Served</Button>
-                <Button variant="outline" onClick={() => setStatus(o._id, "paid")} disabled={loading}>Paid</Button>
+              <div className="font-bold">Cafe scope</div>
+              <div className="text-sm text-gray-600 mt-1">Enter a cafeId to view orders.</div>
+              <div className="mt-3 flex gap-2">
+                <Input value={cafeIdOverride} onChange={(e) => setCafeIdOverride(e.target.value)} placeholder="cafeId (ObjectId)" />
+                <Button variant="outline" onClick={load} disabled={!cafeIdOverride || loading}>Load</Button>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        )}
 
-      {!loading && cafeId && orders.length === 0 && (
-        <div className="mt-6 text-gray-700">No orders yet.</div>
-      )}
+        {error && <div className="text-red-700 font-semibold">{error}</div>}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {orders.map((o) => (
+            <Card key={o._id} className="border border-orange-100 shadow-lg">
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-extrabold text-slate-900">Table {o.tableNumber}</div>
+                    <div className="text-sm text-gray-600">{o.customerName} - {o.phone}</div>
+                  </div>
+                  <div className="px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 font-semibold text-xs uppercase">
+                    {o.status}
+                  </div>
+                </div>
+
+                <div className="mt-3 space-y-1 text-sm">
+                  {o.items.map((it, idx) => (
+                    <div key={idx} className="flex justify-between">
+                      <span>{it.name} x {it.qty}</span>
+                      <span>INR {(it.price * it.qty).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 flex justify-between font-extrabold text-slate-900">
+                  <span>Total</span>
+                  <span>INR {Number(o.totalAmount || 0).toFixed(2)}</span>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="outline" onClick={() => setStatus(o._id, "preparing")} disabled={loading}>Preparing</Button>
+                  <Button variant="outline" onClick={() => setStatus(o._id, "ready")} disabled={loading}>Ready</Button>
+                  <Button variant="outline" onClick={() => setStatus(o._id, "served")} disabled={loading}>Served</Button>
+                  <Button variant="outline" onClick={() => setStatus(o._id, "paid")} disabled={loading}>Paid</Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {!loading && cafeId && orders.length === 0 && (
+          <div className="text-gray-700">No orders yet.</div>
+        )}
+      </div>
     </main>
   );
 }
