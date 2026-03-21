@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/page": [
+    "/[cafeId]/menu/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/[cafeId]/menu/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -16,45 +16,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/[cafeId]/page.js"
     ],
-    "/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
-    ],
-    "/kitchen/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/kitchen/page.js"
-    ],
     "/admin/menu/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/admin/menu/page.js"
     ],
-    "/[cafeId]/menu/page": [
+    "/admin/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/[cafeId]/menu/page.js"
+      "static/chunks/app/admin/login/page.js"
     ],
     "/[cafeId]/cart/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/[cafeId]/cart/page.js"
     ],
-    "/chef/login/page": [
+    "/[cafeId]/order/[orderId]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/chef/login/page.js"
-    ],
-    "/waiter/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/waiter/page.js"
-    ],
-    "/admin/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/login/page.js"
+      "static/chunks/app/[cafeId]/order/[orderId]/page.js"
     ],
     "/waiter/login/page": [
       "static/chunks/webpack.js",
@@ -66,20 +46,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/[cafeId]/orders/page.js"
     ],
-    "/[cafeId]/order/[orderId]/page": [
+    "/waiter/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/[cafeId]/order/[orderId]/page.js"
+      "static/chunks/app/waiter/page.js"
     ],
-    "/super-admin/page": [
+    "/kitchen/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/super-admin/page.js"
-    ],
-    "/super-admin/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/super-admin/login/page.js"
+      "static/chunks/app/kitchen/page.js"
     ]
   }
 }

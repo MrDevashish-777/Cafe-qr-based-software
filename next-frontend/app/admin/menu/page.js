@@ -29,7 +29,8 @@ export default function AdminMenuPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("Drinks");
+  const [category, setCategory] = useState("Beverages");
+  const [customCategory, setCustomCategory] = useState("");
   const [type, setType] = useState("veg");
   const [isSpecial, setIsSpecial] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
@@ -37,6 +38,78 @@ export default function AdminMenuPage() {
 
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ name: "", description: "", price: "", category: "", type: "veg", image: "", isSpecial: false });
+
+  const defaultCategories = [
+    "Beverages",
+    "Water",
+    "Soft Drinks",
+    "Juices",
+    "Milkshakes",
+    "Smoothies",
+    "Mocktails",
+    "Coffee",
+    "Tea",
+    "Hot Chocolate",
+    "Breakfast",
+    "Bakery",
+    "Breads",
+    "Snacks",
+    "Starters",
+    "Soups",
+    "Salads",
+    "Sandwiches",
+    "Burgers",
+    "Wraps",
+    "Pasta",
+    "Pizza",
+    "Noodles",
+    "Rice Bowls",
+    "Main Course",
+    "Grill",
+    "BBQ",
+    "Seafood",
+    "Veg Specials",
+    "Non-Veg Specials",
+    "Thali",
+    "Combos",
+    "Kids Menu",
+    "Desserts",
+    "Ice Cream",
+    "Cakes",
+    "Pastries",
+    "Sides",
+    "Dips",
+  ];
+  const [menuCategories, setMenuCategories] = useState(defaultCategories);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("qrdine:menuCategories");
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        setMenuCategories(parsed);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem("qrdine:menuCategories", JSON.stringify(menuCategories));
+    } catch {
+      // ignore
+    }
+  }, [menuCategories]);
+
+  const addCategoryIfNew = (value) => {
+    const next = String(value || "").trim();
+    if (!next) return;
+    setMenuCategories((prev) => (prev.includes(next) ? prev : [...prev, next]));
+  };
 
   const listUrl = useMemo(() => {
     const qs = adminCafeId ? `?cafeId=${encodeURIComponent(adminCafeId)}` : "";
@@ -520,11 +593,18 @@ export default function AdminMenuPage() {
     setLoading(true);
     setError("");
     try {
+      const resolvedCategory = category === "__custom__" ? customCategory.trim() : category;
+      if (!resolvedCategory) {
+        setError("Please choose or enter a category.");
+        setLoading(false);
+        return;
+      }
+      addCategoryIfNew(resolvedCategory);
       const body = {
         name,
         description,
         price: Number(price),
-        category,
+        category: resolvedCategory,
         type,
         image: imageUrl || "",
         isAvailable: true,
@@ -540,7 +620,8 @@ export default function AdminMenuPage() {
       setName("");
       setDescription("");
       setPrice("");
-      setCategory("Drinks");
+      setCategory("Beverages");
+      setCustomCategory("");
       setType("veg");
       setImageUrl("");
       setIsSpecial(false);
@@ -576,11 +657,18 @@ export default function AdminMenuPage() {
     setLoading(true);
     setError("");
     try {
+      const resolvedCategory = String(editForm.category || "").trim();
+      if (!resolvedCategory) {
+        setError("Please choose or enter a category.");
+        setLoading(false);
+        return;
+      }
+      addCategoryIfNew(resolvedCategory);
       const body = {
         name: editForm.name,
         description: editForm.description,
         price: Number(editForm.price),
-        category: editForm.category,
+        category: resolvedCategory,
         type: editForm.type,
         image: editForm.image || "",
         isSpecial: editForm.isSpecial,
@@ -919,6 +1007,13 @@ export default function AdminMenuPage() {
                       </div>
                       <div className="mt-3 text-xs text-gray-500 break-all">{tableUrl}</div>
                       <div className="mt-3 flex flex-wrap gap-2">
+                        <a
+                          className="inline-flex items-center justify-center rounded-full border-2 border-slate-400 bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm hover:bg-slate-100"
+                          href={qrUrl}
+                          download={`table-${table.tableNumber}-qr.png`}
+                        >
+                          Download QR
+                        </a>
                         <Button
                           variant="outline"
                           onClick={() => deleteTable(table._id, table.tableNumber)}
@@ -1046,7 +1141,27 @@ export default function AdminMenuPage() {
               <form onSubmit={createItem} className="grid grid-cols-1 gap-3">
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" required />
                 <Input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" type="number" required />
-                <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" required />
+                <div className="space-y-2">
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white/80 px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-300/60"
+                  >
+                    {menuCategories.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                    <option value="__custom__">Custom category</option>
+                  </select>
+                  <Input
+                    value={customCategory}
+                    onChange={(e) => {
+                      setCustomCategory(e.target.value);
+                      setCategory("__custom__");
+                    }}
+                    placeholder="Add a new category (e.g., Healthy Bowls)"
+                  />
+                  <div className="text-xs text-slate-500">Pick from the list or type a new category.</div>
+                </div>
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value)}
@@ -1104,7 +1219,27 @@ export default function AdminMenuPage() {
                       <div className="mt-4 space-y-2">
                         <Input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Name" />
                         <Input value={editForm.price} onChange={(e) => setEditForm((p) => ({ ...p, price: e.target.value }))} placeholder="Price" type="number" />
-                        <Input value={editForm.category} onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))} placeholder="Category" />
+                        <div className="space-y-2">
+                          <select
+                            value={menuCategories.includes(editForm.category) ? editForm.category : "__custom__"}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditForm((p) => ({ ...p, category: val === "__custom__" ? p.category : val }));
+                            }}
+                            className="w-full rounded-2xl border border-slate-200 bg-white/80 px-3 py-3 text-sm text-slate-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-300/60"
+                          >
+                            {menuCategories.map((cat) => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                            <option value="__custom__">Custom category</option>
+                          </select>
+                          <Input
+                            value={editForm.category}
+                            onChange={(e) => setEditForm((p) => ({ ...p, category: e.target.value }))}
+                            placeholder="Custom category"
+                          />
+                          <div className="text-xs text-slate-500">Pick from the list or type a new category.</div>
+                        </div>
                         <select
                           value={editForm.type}
                           onChange={(e) => setEditForm((p) => ({ ...p, type: e.target.value }))}

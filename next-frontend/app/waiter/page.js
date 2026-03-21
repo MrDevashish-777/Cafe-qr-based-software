@@ -316,10 +316,28 @@ export default function WaiterPage() {
                   ))}
                 </div>
 
-                <div className="mt-3 flex justify-between font-extrabold text-slate-900">
-                  <span>Total</span>
-                  <span>INR {Number(o.totalAmount || 0).toFixed(2)}</span>
-                </div>
+                {(() => {
+                  const subtotal = Number(o.totalAmount || 0);
+                  const taxRate = Number(cafeInfo?.taxPercent || 0);
+                  const taxAmount = subtotal * (taxRate / 100);
+                  const totalWithTax = subtotal + taxAmount;
+                  return (
+                    <div className="mt-3 space-y-1 text-sm">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Subtotal</span>
+                        <span>INR {subtotal.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>Tax {taxRate ? `(${taxRate}%)` : ""}</span>
+                        <span>INR {taxAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between font-extrabold text-slate-900">
+                        <span>Total</span>
+                        <span>INR {totalWithTax.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Button variant="outline" onClick={() => setStatus(o._id, "served")} disabled={loading}>Served</Button>

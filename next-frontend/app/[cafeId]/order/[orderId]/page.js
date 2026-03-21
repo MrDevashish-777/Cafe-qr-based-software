@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Wifi, Sparkles } from "lucide-react";
 import { apiFetch } from "../../../../lib/api";
 import { connectCafeSocket } from "../../../../lib/socket";
 import { Button } from "../../../../components/ui/Button";
@@ -98,8 +98,8 @@ export default function OrderStatusPage() {
   }, [cafeId]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-slate-100 pb-32">
-      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <main className="min-h-screen customer-shell pb-36">
+      <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-md items-center justify-between px-4 py-3">
           <Button
             variant="outline"
@@ -110,7 +110,7 @@ export default function OrderStatusPage() {
           </Button>
           <div className="text-center">
             <div className="text-xs text-slate-500">Table {tableNumber || "?"}</div>
-            <div className="text-sm font-semibold text-slate-900">Your Orders</div>
+            <div className="text-sm font-semibold text-slate-900">Order Tracker</div>
             <div className="mt-2 flex items-center justify-center">
               <div className="h-10 w-10 rounded-full bg-white shadow ring-2 ring-white overflow-hidden">
                 {cafeInfo?.logoUrl ? (
@@ -128,8 +128,9 @@ export default function OrderStatusPage() {
       </div>
 
       <div className="mx-auto w-full max-w-md px-4 pt-2">
-        <div className="mt-3 text-xs text-slate-500">
-          Live updates: <span className="font-semibold">{socketState}</span>
+        <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+          <Wifi size={14} className={socketState === "connected" ? "text-emerald-600" : "text-slate-400"} />
+          <span>Live updates: <span className="font-semibold">{socketState}</span></span>
         </div>
 
         {error ? (
@@ -137,8 +138,15 @@ export default function OrderStatusPage() {
         ) : !order ? (
           <div className="mt-6 text-sm text-slate-600">Loading...</div>
         ) : (
-          <Card className="mt-4 rounded-3xl border border-slate-100 shadow-sm">
+          <Card className="mt-4 rounded-3xl border border-white/70 bg-white/85 shadow-sm">
             <CardContent>
+              {(() => {
+                const subtotal = order.items.reduce((sum, it) => sum + Number(it.price || 0) * Number(it.qty || 0), 0);
+                const taxRate = Number(cafeInfo?.taxPercent || 0);
+                const taxAmount = subtotal * (taxRate / 100);
+                const totalWithTax = subtotal + taxAmount;
+                return (
+                  <>
               <div className="flex items-center justify-between">
                 <div className="text-sm font-semibold text-slate-900">
                   Order #{order._id.slice(-6)} - Table {order.tableNumber}
@@ -187,14 +195,43 @@ export default function OrderStatusPage() {
                 ))}
               </div>
 
-              <div className="mt-4 flex justify-between text-base font-extrabold text-slate-900">
-                <span>Total</span>
-                <span>INR {Number(order.totalAmount || 0).toFixed(0)}</span>
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>INR {subtotal.toFixed(0)}</span>
+                </div>
+                <div className="mt-2 flex justify-between">
+                  <span>Tax {taxRate ? `(${taxRate}%)` : ""}</span>
+                  <span>INR {taxAmount.toFixed(0)}</span>
+                </div>
               </div>
 
-              <div className="mt-3 text-xs text-slate-500">
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+                <div className="text-[10px] uppercase tracking-widest text-slate-400">Customer details</div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-[10px] text-slate-400">Name</div>
+                    <div className="text-sm font-semibold text-slate-900">{order.customerName || "Guest"}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-slate-400">Phone</div>
+                    <div className="text-sm font-semibold text-slate-900">{order.phone || "-"}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex justify-between text-base font-extrabold text-slate-900">
+                <span>Total (incl. tax)</span>
+                <span>INR {totalWithTax.toFixed(0)}</span>
+              </div>
+
+              <div className="mt-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-800 flex items-center gap-2">
+                <Sparkles size={12} />
                 Pay at the counter. Your status updates automatically.
               </div>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         )}

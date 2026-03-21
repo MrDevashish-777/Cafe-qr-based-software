@@ -53,23 +53,30 @@ export default function CafeEntryPage() {
 
   if (splash) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center bg-cover bg-center"
-        style={{
-          backgroundImage: cafe?.brandImageUrl ? `url(${cafe.brandImageUrl})` : "none",
-        }}
-      >
-        <div className="min-h-screen w-full bg-black/50 backdrop-blur-sm flex items-center justify-center px-6">
-          <div className="text-center text-white">
+      <div className="min-h-screen customer-shell flex items-center justify-center px-6">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: cafe?.brandImageUrl ? `url(${cafe.brandImageUrl})` : "none",
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
+        <div className="relative z-10 w-full max-w-sm text-center text-white">
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-3xl bg-white/15 shadow-2xl shadow-black/40 backdrop-blur">
             {cafe?.logoUrl ? (
-              <img src={cafe.logoUrl} alt={cafe?.name || "Cafe"} className="mx-auto mb-4 h-20 w-20 rounded-2xl object-cover border border-white/30" />
+              <img
+                src={cafe.logoUrl}
+                alt={cafe?.name || "Cafe"}
+                className="h-20 w-20 rounded-2xl object-cover border border-white/30"
+              />
             ) : (
-              <div className="mx-auto mb-4 h-20 w-20 rounded-2xl bg-white/20 flex items-center justify-center text-3xl font-extrabold">
-                Q
-              </div>
+              <div className="text-3xl font-extrabold">Q</div>
             )}
-            <div className="text-4xl font-extrabold">{cafe?.name || "QRDine"}</div>
-            <div className="mt-2 text-sm font-semibold text-white/80">Loading menu…</div>
+          </div>
+          <div className="mt-4 text-4xl font-extrabold">{cafe?.name || "QRDine"}</div>
+          <div className="mt-2 text-sm font-semibold text-white/80">Preparing your menu experience…</div>
+          <div className="mt-6 rounded-full bg-white/20 p-1">
+            <div className="h-2 w-2/3 rounded-full bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 shadow-lg shadow-orange-500/40 animate-glow" />
           </div>
         </div>
       </div>

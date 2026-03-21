@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Wifi, Clock } from "lucide-react";
 import { apiFetch } from "../../../lib/api";
 import { connectCafeSocket } from "../../../lib/socket";
 import { Button } from "../../../components/ui/Button";
@@ -94,8 +94,8 @@ export default function OrdersPage() {
   }, [cafeId, tableNumber]);
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-slate-100 pb-32">
-      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <main className="min-h-screen customer-shell pb-36">
+      <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-md items-center justify-between px-4 py-3">
           <Button variant="outline" className="h-9 w-9 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}`)}>
             <ArrowLeft size={18} className="text-slate-900" />
@@ -120,19 +120,24 @@ export default function OrdersPage() {
       </div>
 
       <div className="mx-auto w-full max-w-md px-4 pt-2">
-        <div className="mt-3 text-xs text-slate-500">Live updates: <span className="font-semibold">{socketState}</span></div>
+        <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
+          <Wifi size={14} className={socketState === "connected" ? "text-emerald-600" : "text-slate-400"} />
+          <span>Live updates: <span className="font-semibold">{socketState}</span></span>
+        </div>
         {error && <div className="mt-4 text-sm font-semibold text-red-700">{error}</div>}
 
         {loading ? (
           <div className="mt-6 text-sm text-slate-600">Loading...</div>
         ) : orders.length === 0 ? (
-          <div className="mt-6 text-sm text-slate-600">No orders yet for this table.</div>
+          <div className="mt-6 rounded-3xl border border-white/70 bg-white/80 p-6 text-center text-sm text-slate-600 shadow-sm">
+            No orders yet for this table.
+          </div>
         ) : (
           <div className="mt-4 space-y-4">
             {orders.map((order) => {
               const activeIndex = statusSteps.indexOf(order.status);
               return (
-                <Card key={order._id} className="rounded-3xl border border-slate-100 shadow-sm">
+                <Card key={order._id} className="rounded-3xl border border-white/70 bg-white/85 shadow-sm">
                   <CardContent>
                     <div className="flex items-center justify-between">
                       <div className="text-sm font-semibold text-slate-900">Order #{order._id.slice(-6)}</div>
@@ -159,10 +164,28 @@ export default function OrdersPage() {
                       ))}
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between text-sm font-semibold text-slate-900">
-                      <span>Total</span>
-                      <span>INR {Number(order.totalAmount || 0).toFixed(0)}</span>
-                    </div>
+                    {(() => {
+                      const subtotal = Number(order.totalAmount || 0);
+                      const taxRate = Number(cafeInfo?.taxPercent || 0);
+                      const taxAmount = subtotal * (taxRate / 100);
+                      const totalWithTax = subtotal + taxAmount;
+                      return (
+                        <div className="mt-3 space-y-1 text-sm">
+                          <div className="flex justify-between text-slate-600">
+                            <span>Subtotal</span>
+                            <span>INR {subtotal.toFixed(0)}</span>
+                          </div>
+                          <div className="flex justify-between text-slate-600">
+                            <span>Tax {taxRate ? `(${taxRate}%)` : ""}</span>
+                            <span>INR {taxAmount.toFixed(0)}</span>
+                          </div>
+                          <div className="flex items-center justify-between font-semibold text-slate-900">
+                            <span>Total (incl. tax)</span>
+                            <span>INR {totalWithTax.toFixed(0)}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     <div className="mt-3">
                       <Button
@@ -172,6 +195,11 @@ export default function OrdersPage() {
                       >
                         Track Order
                       </Button>
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+                      <Clock size={12} />
+                      <span>Status refreshes live. No need to reload.</span>
                     </div>
                   </CardContent>
                 </Card>

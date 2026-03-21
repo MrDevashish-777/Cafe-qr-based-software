@@ -18,7 +18,7 @@ export default function CustomerBottomNav({ cafeId }) {
 
   return (
     <nav className="fixed bottom-0 left-1/2 z-30 w-[min(520px,calc(100%-1.5rem))] -translate-x-1/2 pb-4">
-      <div className="rounded-2xl border border-white/60 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur">
+      <div className="rounded-2xl border border-white/70 bg-white/90 shadow-xl shadow-slate-200/60 backdrop-blur">
         <div className="grid grid-cols-3 gap-1 p-2 text-xs font-semibold">
           {links.map((item) => {
             const Icon = item.icon;
@@ -28,10 +28,12 @@ export default function CustomerBottomNav({ cafeId }) {
                 key={item.key}
                 href={item.href}
                 className={`flex flex-col items-center gap-1 rounded-xl px-2 py-2 transition ${
-                  active ? "bg-orange-100 text-orange-700" : "text-slate-600 hover:bg-slate-100"
+                  active ? "bg-gradient-to-r from-orange-500 via-amber-400 to-amber-300 text-white shadow shadow-orange-500/30" : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                <Icon size={16} />
+                <span className={`flex h-8 w-8 items-center justify-center rounded-full ${active ? "bg-white/20" : "bg-slate-100"}`}>
+                  <Icon size={16} />
+                </span>
                 <span>{item.label}</span>
               </a>
             );

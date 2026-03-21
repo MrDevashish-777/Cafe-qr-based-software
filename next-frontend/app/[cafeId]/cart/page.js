@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { apiFetch } from "../../../lib/api";
 import { Button } from "../../../components/ui/Button";
-import { ArrowLeft, Minus, Plus } from "lucide-react";
+import { ArrowLeft, Minus, Plus, Sparkles, Receipt } from "lucide-react";
 import { Card, CardContent } from "../../../components/ui/Card";
 import CustomerBottomNav from "../../../components/CustomerBottomNav";
 import { Input, Textarea } from "../../../components/ui/Input";
@@ -36,6 +36,7 @@ export default function CartPage() {
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState("");
+  const [showDetails, setShowDetails] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -94,8 +95,9 @@ export default function CartPage() {
   }, [cart, cafeId, tableNumber, hydrated]);
 
   const subtotal = cart.reduce((sum, x) => sum + x.price * x.qty, 0);
-  const gst = 0;
-  const total = subtotal + gst;
+  const taxRate = Number(cafeInfo?.taxPercent || 0);
+  const taxAmount = subtotal * (taxRate / 100);
+  const total = subtotal + taxAmount;
 
   const updateQty = (id, delta) => {
     setCart((prev) =>
@@ -110,7 +112,8 @@ export default function CartPage() {
     const nameToUse = customerName?.trim();
     const phoneToUse = customerPhone?.trim();
     if (!nameToUse || !phoneToUse) {
-      setError("Please enter your name and phone number.");
+      setShowDetails(true);
+      setError("");
       return;
     }
     if (cart.length === 0) return;
@@ -140,15 +143,15 @@ export default function CartPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-white via-slate-50 to-slate-100 pb-32">
-      <div className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 backdrop-blur">
+    <main className="min-h-screen customer-shell pb-36">
+      <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-md items-center justify-between px-4 py-3">
           <Button variant="outline" className="h-9 w-9 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}`)}>
             <ArrowLeft size={18} className="text-slate-900" />
           </Button>
           <div className="text-center">
             <div className="text-xs text-slate-500">Table {tableNumber || "?"}</div>
-            <div className="text-sm font-semibold text-slate-900">Your Cart</div>
+            <div className="text-sm font-semibold text-slate-900">Review your order</div>
             <div className="mt-2 flex items-center justify-center">
               <div className="h-10 w-10 rounded-full bg-white shadow ring-2 ring-white overflow-hidden">
                 {cafeInfo?.logoUrl ? (
@@ -165,21 +168,20 @@ export default function CartPage() {
 
       <div className="mx-auto w-full max-w-md px-4 pt-2">
         {cart.length === 0 ? (
-          <div className="mt-8 text-sm text-slate-600">Cart is empty.</div>
+          <div className="mt-8 rounded-3xl border border-white/70 bg-white/80 p-6 text-center text-sm text-slate-600 shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+              <Receipt size={20} />
+            </div>
+            <div className="mt-3 text-base font-semibold text-slate-900">Your cart is empty</div>
+            <div className="mt-1 text-xs text-slate-500">Add a few favorites to get started.</div>
+            <Button className="mt-4 w-full rounded-full" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}`)}>
+              Browse Menu
+            </Button>
+          </div>
         ) : (
           <div className="mt-4 space-y-4">
-            <Card className="rounded-3xl border border-slate-100 shadow-sm">
-              <CardContent>
-                <div className="text-sm font-semibold text-slate-700">Customer details</div>
-                <div className="mt-3 grid grid-cols-1 gap-3">
-                  <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Your name" />
-                  <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Phone number (e.g. +91XXXXXXXXXX)" />
-                </div>
-              </CardContent>
-            </Card>
-
             {cart.map((x) => (
-              <Card key={x._id} className="rounded-3xl border border-slate-100 shadow-sm">
+              <Card key={x._id} className="rounded-3xl border border-white/70 bg-white/85 shadow-sm">
                 <CardContent>
                   <div className="flex items-center justify-between gap-4">
                     <div>
@@ -200,16 +202,25 @@ export default function CartPage() {
               </Card>
             ))}
 
-            <Card className="rounded-3xl border border-slate-100 shadow-sm">
+            <Card className="rounded-3xl border border-white/70 bg-white/85 shadow-sm">
               <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs uppercase tracking-widest text-slate-400">Step 2</div>
+                    <div className="text-sm font-semibold text-slate-700">Bill summary</div>
+                  </div>
+                  <div className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
+                    <Sparkles size={12} /> Fast checkout
+                  </div>
+                </div>
                 <div className="space-y-2 text-sm text-slate-600">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
                     <span>INR {subtotal.toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>GST</span>
-                    <span>INR {gst.toFixed(0)}</span>
+                    <span>Tax {taxRate ? `(${taxRate}%)` : ""}</span>
+                    <span>INR {taxAmount.toFixed(0)}</span>
                   </div>
                   <div className="flex justify-between text-base font-extrabold text-slate-900">
                     <span>Total</span>
@@ -233,6 +244,40 @@ export default function CartPage() {
           </div>
         )}
       </div>
+
+      {showDetails && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-4">
+          <div className="w-full max-w-sm rounded-3xl border border-white/70 bg-white p-5 shadow-2xl">
+            <div className="text-xs uppercase tracking-widest text-slate-400">Customer details</div>
+            <div className="mt-1 text-lg font-semibold text-slate-900">Tell us who you are</div>
+            <div className="mt-1 text-xs text-slate-500">We’ll attach this to your order.</div>
+
+            <div className="mt-4 grid gap-3">
+              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Your name" />
+              <Input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="Phone number (e.g. +91XXXXXXXXXX)" />
+            </div>
+
+            {error && <div className="mt-3 text-sm font-semibold text-red-700">{error}</div>}
+
+            <div className="mt-5 flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setShowDetails(false)} disabled={placing}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={async () => {
+                  setShowDetails(false);
+                  await placeOrder();
+                }}
+                disabled={placing}
+              >
+                Continue
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <CustomerBottomNav cafeId={cafeId} />
     </main>
   );
