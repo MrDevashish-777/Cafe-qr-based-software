@@ -33,6 +33,7 @@ export default function CartPage() {
   const [notes, setNotes] = useState("");
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState("");
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     if (!cafeId || !tableNumber) return;
@@ -54,6 +55,7 @@ export default function CartPage() {
       setCustomerName("");
       setCustomerPhone("");
     }
+    setHydrated(true);
   }, [cafeId, tableNumber]);
 
   useEffect(() => {
@@ -67,8 +69,9 @@ export default function CartPage() {
 
   useEffect(() => {
     if (!cafeId || !tableNumber) return;
+    if (!hydrated) return;
     localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(cart));
-  }, [cart, cafeId, tableNumber]);
+  }, [cart, cafeId, tableNumber, hydrated]);
 
   const subtotal = cart.reduce((sum, x) => sum + x.price * x.qty, 0);
 

@@ -38,6 +38,11 @@ export default function MenuPage() {
     }
   }, [cafeId, tableNumber]);
 
+  const persistCart = (nextCart) => {
+    if (!cafeId || !tableNumber) return;
+    localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(nextCart));
+  };
+
   useEffect(() => {
     if (!cafeId || !tableNumber) return;
     localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(cart));
@@ -65,19 +70,22 @@ export default function MenuPage() {
   const add = (item) => {
     setCart((prev) => {
       const found = prev.find((x) => x._id === item._id);
-      if (found) {
-        return prev.map((x) => (x._id === item._id ? { ...x, qty: x.qty + 1 } : x));
-      }
-      return [...prev, { _id: item._id, name: item.name, price: item.price, qty: 1 }];
+      const next = found
+        ? prev.map((x) => (x._id === item._id ? { ...x, qty: x.qty + 1 } : x))
+        : [...prev, { _id: item._id, name: item.name, price: item.price, qty: 1 }];
+      persistCart(next);
+      return next;
     });
   };
 
   const remove = (item) => {
-    setCart((prev) =>
-      prev
+    setCart((prev) => {
+      const next = prev
         .map((x) => (x._id === item._id ? { ...x, qty: x.qty - 1 } : x))
-        .filter((x) => x.qty > 0)
-    );
+        .filter((x) => x.qty > 0);
+      persistCart(next);
+      return next;
+    });
   };
 
   const cartCount = cart.reduce((sum, x) => sum + x.qty, 0);
@@ -90,6 +98,11 @@ export default function MenuPage() {
 
   return (
     <main className="p-6 max-w-5xl mx-auto">
+      <div className="mb-4 rounded-xl border border-orange-100 bg-white/80 p-3 text-xs text-slate-600">
+        <div><span className="font-semibold">Debug key:</span> {cafeId && tableNumber ? cartKey(cafeId, tableNumber) : "missing cafeId/table"}</div>
+        <div><span className="font-semibold">Cart count:</span> {cartCount}</div>
+        <div><span className="font-semibold">LocalStorage:</span> {typeof window !== "undefined" && cafeId && tableNumber ? localStorage.getItem(cartKey(cafeId, tableNumber)) : "n/a"}</div>
+      </div>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-brand">Menu</h1>

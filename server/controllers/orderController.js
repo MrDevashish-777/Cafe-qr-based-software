@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const Table = require("../models/Table");
 const { emitCafeEvent } = require("../realtime/socket");
 
 exports.createOrder = async (req, res) => {
@@ -26,6 +27,11 @@ exports.createOrder = async (req, res) => {
       totalAmount,
       status: "pending",
     });
+
+    await Table.findOneAndUpdate(
+      { cafeId, tableNumber },
+      { $set: { status: "reserved" } }
+    );
 
     emitCafeEvent(order.cafeId, "NEW_ORDER", order);
 
@@ -68,6 +74,13 @@ exports.updateOrder = async (req, res) => {
     if (prevStatus !== order.status) {
       if (order.status === "ready") emitCafeEvent(order.cafeId, "ORDER_READY", order);
       if (order.status === "paid") emitCafeEvent(order.cafeId, "ORDER_PAID", order);
+    }
+
+    if (["served", "paid"].includes(order.status)) {
+      await Table.findOneAndUpdate(
+        { cafeId: order.cafeId, tableNumber: order.tableNumber },
+        { $set: { status: "free" } }
+      );
     }
     return res.json(order);
   } catch (error) {

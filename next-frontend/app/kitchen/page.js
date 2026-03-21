@@ -174,10 +174,12 @@ export default function KitchenPage() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => setStatus(o._id, "preparing")} disabled={loading}>Preparing</Button>
-                  <Button variant="outline" onClick={() => setStatus(o._id, "ready")} disabled={loading}>Ready</Button>
-                  <Button variant="outline" onClick={() => setStatus(o._id, "served")} disabled={loading}>Served</Button>
-                  <Button variant="outline" onClick={() => setStatus(o._id, "paid")} disabled={loading}>Paid</Button>
+                <Button variant="outline" onClick={() => setStatus(o._id, "accepted")} disabled={loading}>Accepted</Button>
+                <Button variant="outline" onClick={() => setStatus(o._id, "baking")} disabled={loading}>Baking</Button>
+                <Button variant="outline" onClick={() => setStatus(o._id, "preparing")} disabled={loading}>Preparing</Button>
+                <Button variant="outline" onClick={() => setStatus(o._id, "ready")} disabled={loading}>Ready</Button>
+                <Button variant="outline" onClick={() => setStatus(o._id, "served")} disabled={loading}>Served</Button>
+                <Button variant="outline" onClick={() => setStatus(o._id, "paid")} disabled={loading}>Paid</Button>
                 </div>
               </CardContent>
             </Card>

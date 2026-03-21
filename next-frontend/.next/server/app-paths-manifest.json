@@ -1,6 +1,9 @@
 {
-  "/[cafeId]/page": "app/[cafeId]/page.js",
-  "/login/page": "app/login/page.js",
   "/admin/menu/page": "app/admin/menu/page.js",
+  "/[cafeId]/order/[orderId]/page": "app/[cafeId]/order/[orderId]/page.js",
+  "/admin/login/page": "app/admin/login/page.js",
+  "/chef/login/page": "app/chef/login/page.js",
+  "/waiter/login/page": "app/waiter/login/page.js",
+  "/[cafeId]/page": "app/[cafeId]/page.js",
   "/[cafeId]/menu/page": "app/[cafeId]/menu/page.js"
 }

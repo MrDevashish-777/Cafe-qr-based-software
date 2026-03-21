@@ -7,6 +7,21 @@ import { connectCafeSocket } from "../../../../lib/socket";
 import { Button } from "../../../../components/ui/Button";
 import { Card, CardContent } from "../../../../components/ui/Card";
 
+const statusSteps = [
+  { key: "pending", label: "Pending" },
+  { key: "accepted", label: "Accepted" },
+  { key: "baking", label: "Baking" },
+  { key: "preparing", label: "Preparing" },
+  { key: "ready", label: "Ready" },
+  { key: "served", label: "Served" },
+  { key: "paid", label: "Paid" },
+];
+
+const statusLabel = (status) => {
+  const found = statusSteps.find((s) => s.key === status);
+  return found ? found.label : status;
+};
+
 export default function OrderStatusPage() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -82,8 +97,25 @@ export default function OrderStatusPage() {
             <div className="flex items-center justify-between">
               <div className="font-bold">Order #{order._id.slice(-6)}</div>
               <div className="px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 font-semibold">
-                {order.status}
+                {statusLabel(order.status)}
               </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {statusSteps.map((step, idx) => {
+                const activeIndex = statusSteps.findIndex((s) => s.key === order.status);
+                const active = idx <= activeIndex;
+                return (
+                  <div
+                    key={step.key}
+                    className={`rounded-xl border px-3 py-2 text-xs font-semibold ${
+                      active ? "bg-orange-50 border-orange-200 text-orange-700" : "bg-white border-gray-200 text-gray-500"
+                    }`}
+                  >
+                    {step.label}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="mt-4 space-y-2">

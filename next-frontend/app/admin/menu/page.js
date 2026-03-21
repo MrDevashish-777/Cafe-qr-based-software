@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch, getApiBaseUrl } from "../../../lib/api";
 import { authHeaders, clearToken, getToken, getUser } from "../../../lib/auth";
+import { connectCafeSocket } from "../../../lib/socket";
 import { Button } from "../../../components/ui/Button";
 import { Card, CardContent } from "../../../components/ui/Card";
 import { Input, Textarea } from "../../../components/ui/Input";
@@ -48,7 +49,10 @@ export default function AdminMenuPage() {
     return { total, available, categories };
   }, [items]);
 
-  const baseCustomerUrl = useMemo(() => window.location.origin, []);
+  const baseCustomerUrl = useMemo(
+    () => (typeof window !== "undefined" ? window.location.origin : ""),
+    []
+  );
 
   const [tables, setTables] = useState([]);
   const [tablesLoading, setTablesLoading] = useState(false);
@@ -75,6 +79,11 @@ export default function AdminMenuPage() {
   const [cafeLogoUploading, setCafeLogoUploading] = useState(false);
   const [cafeBrandUploading, setCafeBrandUploading] = useState(false);
 
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState("");
+  const [ordersSocket, setOrdersSocket] = useState("disconnected");
+
   const tablesCafeId = useMemo(
     () => (role === "super_admin" ? adminCafeId : user?.cafeId || ""),
     [role, adminCafeId, user?.cafeId]
@@ -84,21 +93,21 @@ export default function AdminMenuPage() {
 
   const cafeIdForAdmin = tablesCafeId;
 
-  const requireLogin = () => {
+  const requireLogin = (redirectOnFail = true) => {
     const token = getToken();
     if (!token) {
-      window.location.href = "/admin/login";
+      if (redirectOnFail) window.location.href = "/admin/login";
       return false;
     }
     if (role && role !== "cafe_admin" && role !== "super_admin") {
-      window.location.href = "/admin/login";
+      if (redirectOnFail) window.location.href = "/admin/login";
       return false;
     }
     return true;
   };
 
-  const load = async () => {
-    if (!requireLogin()) return;
+  const load = async (redirectOnFail = true) => {
+    if (!requireLogin(redirectOnFail)) return;
     setLoading(true);
     setError("");
     try {
@@ -112,7 +121,7 @@ export default function AdminMenuPage() {
   };
 
   const loadTables = async () => {
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     if (!tablesCafeId) {
       setTables([]);
       return;
@@ -131,7 +140,7 @@ export default function AdminMenuPage() {
   };
 
   const generateTables = async () => {
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     if (!tablesCafeId && role === "super_admin") {
       setTableError("cafeId is required");
       return;
@@ -157,7 +166,7 @@ export default function AdminMenuPage() {
 
   const uploadCafeImage = async (file, setter, setUploading) => {
     if (!file) return;
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     setUploading(true);
     setCafeError("");
     try {
@@ -183,7 +192,7 @@ export default function AdminMenuPage() {
   };
 
   const loadCafe = async () => {
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     if (!cafeIdForAdmin) {
       setCafeInfo(null);
       return;
@@ -207,9 +216,23 @@ export default function AdminMenuPage() {
     }
   };
 
+  const loadOrders = async () => {
+    if (!tablesCafeId) return;
+    setOrdersLoading(true);
+    setOrdersError("");
+    try {
+      const data = await apiFetch(`/api/orders/${tablesCafeId}`);
+      setOrders(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setOrdersError(e.message || "Failed to load orders");
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
   const saveCafe = async (event) => {
     event.preventDefault();
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     if (!cafeIdForAdmin) {
       setCafeError("cafeId is required");
       return;
@@ -241,7 +264,7 @@ export default function AdminMenuPage() {
 
   const uploadImage = async (file) => {
     if (!file) return;
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     setImageUploading(true);
     setError("");
     try {
@@ -267,7 +290,7 @@ export default function AdminMenuPage() {
   };
 
   const loadStaff = async () => {
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     if (!staffCafeId) {
       setStaffList([]);
       return;
@@ -324,7 +347,7 @@ export default function AdminMenuPage() {
 
   const createStaff = async (event) => {
     event.preventDefault();
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     setStaffLoading(true);
     setStaffError("");
     setStaffSuccess("");
@@ -377,9 +400,46 @@ export default function AdminMenuPage() {
     if (staffCafeId) loadStaff();
   }, [staffCafeId]);
 
+  useEffect(() => {
+    if (tablesCafeId) loadOrders();
+  }, [tablesCafeId]);
+
+  useEffect(() => {
+    if (!tablesCafeId) return;
+    const socket = connectCafeSocket(tablesCafeId);
+    setOrdersSocket("connecting");
+
+    socket.on("connect", () => setOrdersSocket("connected"));
+    socket.on("disconnect", () => setOrdersSocket("disconnected"));
+
+    const onOrder = (payload) => {
+      if (!payload?._id) return;
+      setOrders((prev) => {
+        const idx = prev.findIndex((o) => o._id === payload._id);
+        if (idx === -1) return [payload, ...prev];
+        const copy = prev.slice();
+        copy[idx] = payload;
+        return copy;
+      });
+    };
+
+    socket.on("NEW_ORDER", onOrder);
+    socket.on("ORDER_UPDATED", onOrder);
+    socket.on("ORDER_READY", onOrder);
+    socket.on("ORDER_PAID", onOrder);
+
+    return () => {
+      socket.off("NEW_ORDER", onOrder);
+      socket.off("ORDER_UPDATED", onOrder);
+      socket.off("ORDER_READY", onOrder);
+      socket.off("ORDER_PAID", onOrder);
+      socket.disconnect();
+    };
+  }, [tablesCafeId]);
+
   const createItem = async (e) => {
     e.preventDefault();
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     setLoading(true);
     setError("");
     try {
@@ -432,7 +492,7 @@ export default function AdminMenuPage() {
 
   const saveEdit = async () => {
     if (!editingId) return;
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     setLoading(true);
     setError("");
     try {
@@ -461,7 +521,7 @@ export default function AdminMenuPage() {
   };
 
   const deleteItem = async (id) => {
-    if (!requireLogin()) return;
+    if (!requireLogin(false)) return;
     const ok = window.confirm("Delete this menu item?");
     if (!ok) return;
     setLoading(true);
@@ -524,7 +584,7 @@ export default function AdminMenuPage() {
         </header>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button variant="outline" onClick={load} disabled={loading}>Refresh</Button>
+          <Button variant="outline" onClick={() => load(false)} disabled={loading}>Refresh</Button>
           <Button
             variant="outline"
             onClick={() => {
@@ -621,6 +681,58 @@ export default function AdminMenuPage() {
           <CardContent>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
+                <div className="font-bold">Live orders</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Track customer orders in real time. Socket: <span className="font-semibold">{ordersSocket}</span>
+                </div>
+              </div>
+              <Button variant="outline" onClick={loadOrders} disabled={ordersLoading || !tablesCafeId}>
+                Refresh orders
+              </Button>
+            </div>
+
+            {ordersError && <div className="mt-3 text-red-700 font-semibold">{ordersError}</div>}
+
+            {tablesCafeId ? (
+              orders.length === 0 && !ordersLoading ? (
+                <div className="mt-4 text-sm text-gray-600">No orders yet.</div>
+              ) : (
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {orders.map((order) => (
+                    <div key={order._id} className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold text-slate-900">Table {order.tableNumber}</div>
+                        <div className="px-2 py-1 rounded-full text-[11px] font-semibold border bg-orange-50 text-orange-700 border-orange-200">
+                          {order.status}
+                        </div>
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500">Order #{order._id.slice(-6)}</div>
+                      <div className="mt-3 text-sm text-slate-700">
+                        {order.items?.slice(0, 2).map((it, idx) => (
+                          <div key={idx} className="flex justify-between">
+                            <span>{it.name} x {it.qty}</span>
+                            <span>₹{(it.price * it.qty).toFixed(2)}</span>
+                          </div>
+                        ))}
+                        {order.items?.length > 2 && (
+                          <div className="text-xs text-gray-500 mt-1">+{order.items.length - 2} more items</div>
+                        )}
+                      </div>
+                      <div className="mt-3 font-semibold text-slate-900">Total ₹{Number(order.totalAmount || 0).toFixed(2)}</div>
+                    </div>
+                  ))}
+                </div>
+              )
+            ) : (
+              <div className="mt-4 text-sm text-gray-600">Provide a cafeId to view orders.</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border border-orange-100 shadow-xl">
+          <CardContent>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
                 <div className="font-bold">Table QR codes</div>
                 <div className="text-sm text-gray-600 mt-1">
                   Generate one QR per table. Each QR links to the cafe with its table number.
@@ -662,13 +774,22 @@ export default function AdminMenuPage() {
                 {tables.map((table) => {
                   const tableUrl = `${baseCustomerUrl}/${tablesCafeId}?table=${table.tableNumber}`;
                   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(tableUrl)}`;
+                  const statusLabel = table.status === "reserved" ? "Reserved" : "Free";
+                  const statusClass =
+                    table.status === "reserved"
+                      ? "bg-orange-50 text-orange-700 border-orange-200"
+                      : "bg-emerald-50 text-emerald-700 border-emerald-200";
                   return (
                     <div key={table._id} className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm">
                       <div className="flex items-center justify-between">
                         <div className="font-semibold text-slate-900">Table {table.tableNumber}</div>
-                        <a className="text-xs font-semibold text-orange-600" href={tableUrl} target="_blank" rel="noreferrer">
+                        <div className={`px-2 py-1 rounded-full text-[11px] font-semibold border ${statusClass}`}>{statusLabel}</div>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                        <a className="font-semibold text-orange-600" href={tableUrl} target="_blank" rel="noreferrer">
                           Open
                         </a>
+                        <span>{table.status || "free"}</span>
                       </div>
                       <div className="mt-3 flex items-center justify-center">
                         <img src={qrUrl} alt={`QR for table ${table.tableNumber}`} className="h-40 w-40 rounded-xl border border-orange-100" />
