@@ -1,0 +1,6 @@
+[build]
+  base = "next-frontend"
+  command = "next build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

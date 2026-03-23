@@ -22,6 +22,11 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const allowedOrigins = [
+  "http://localhost:5000",
+  "https://cafe-qr-based-software.onrender.com",
+];
+
 app.use(
   cors({
     origin: [

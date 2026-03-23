@@ -6,6 +6,7 @@ const { emitCafeEvent } = require("../realtime/socket");
 const { canAccessCafe, forbiddenTenant } = require("../utils/tenant");
 const { computeOrderTotals } = require("../utils/pricing");
 const { haversineMeters } = require("../utils/geo");
+const { verifyTableToken } = require("../utils/tableToken");
 const {
   upsertCustomerFromOrder,
   signCustomerCookie,
@@ -22,7 +23,7 @@ exports.listOrdersByTableVenue = async (req, res) => {
 
 exports.createOrder = async (req, res) => {
   try {
-    const { cafeId, tableNumber, customerName, phone, items, visitId, customerLat, customerLng } = req.body;
+    const { cafeId, tableNumber, customerName, phone, items, visitId, customerLat, customerLng, tableToken } = req.body;
     if (!cafeId) return res.status(400).json({ message: "cafeId is required" });
     const visit = typeof visitId === "string" ? visitId.trim() : "";
     if (!visit) return res.status(400).json({ message: "visitId is required" });
@@ -55,6 +56,9 @@ exports.createOrder = async (req, res) => {
       }
     }
     if (!tableNumber) return res.status(400).json({ message: "tableNumber is required" });
+    if (!verifyTableToken(cafeId, tableNumber, tableToken)) {
+      return res.status(403).json({ message: "Invalid table token" });
+    }
     if (!customerName) return res.status(400).json({ message: "customerName is required" });
     if (!phone) return res.status(400).json({ message: "phone is required" });
     if (!Array.isArray(items) || items.length === 0) {
@@ -180,6 +184,10 @@ exports.listOrdersByTable = async (req, res) => {
     const { cafeId, tableNumber } = req.params;
     if (!cafeId) return res.status(400).json({ message: "cafeId is required" });
     if (!tableNumber) return res.status(400).json({ message: "tableNumber is required" });
+    const token = req.query.t || req.query.tableToken || "";
+    if (!verifyTableToken(cafeId, tableNumber, token)) {
+      return res.status(403).json({ message: "Invalid table token" });
+    }
     const q = { cafeId, tableNumber: Number(tableNumber) };
     const vid = typeof req.query.visitId === "string" ? req.query.visitId.trim() : "";
     if (vid) q.visitId = vid;

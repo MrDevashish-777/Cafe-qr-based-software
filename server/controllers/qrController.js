@@ -4,6 +4,7 @@ const { URL } = require("url");
 const QRCode = require("qrcode");
 const sharp = require("sharp");
 const Cafe = require("../models/Cafe");
+const { signTableToken, verifyTableToken } = require("../utils/tableToken");
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -65,7 +66,8 @@ exports.tableQr = async (req, res) => {
     const qrSize = clamp(Number(size || 260), 120, 1024);
     const origin = String(baseUrl || req.get("origin") || process.env.CUSTOMER_BASE_URL || "").trim();
     if (!origin) return res.status(400).json({ message: "baseUrl is required" });
-    const tableUrl = `${origin.replace(/\/$/, "")}/${cafeId}?table=${num}`;
+    const token = signTableToken(cafeId, num);
+    const tableUrl = `${origin.replace(/\/$/, "")}/${cafeId}?table=${num}&t=${token}`;
 
     const qrBuffer = await QRCode.toBuffer(tableUrl, {
       type: "png",
@@ -118,6 +120,39 @@ exports.tableQr = async (req, res) => {
     res.set("Content-Type", "image/png");
     res.set("Cache-Control", "public, max-age=3600");
     return res.send(output);
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.verifyTableToken = async (req, res) => {
+  try {
+    const { cafeId, tableNumber, t } = req.query;
+    if (!cafeId) return res.status(400).json({ message: "cafeId is required" });
+    const num = Number(tableNumber);
+    if (!num || num < 1) return res.status(400).json({ message: "tableNumber must be >= 1" });
+    if (!t) return res.status(400).json({ message: "table token is required" });
+
+    const ok = verifyTableToken(cafeId, num, t);
+    if (!ok) return res.status(400).json({ message: "Invalid table token" });
+
+    return res.json({ valid: true });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.tableToken = async (req, res) => {
+  try {
+    const { cafeId, tableNumber } = req.query;
+    if (!cafeId) return res.status(400).json({ message: "cafeId is required" });
+    const num = Number(tableNumber);
+    if (!num || num < 1) return res.status(400).json({ message: "tableNumber must be >= 1" });
+
+    const cafe = await Cafe.findById(cafeId).lean();
+    if (!cafe) return res.status(404).json({ message: "Cafe not found" });
+
+    return res.json({ token: signTableToken(cafeId, num) });
   } catch (error) {
     return res.status(500).json({ message: "Server error", error });
   }

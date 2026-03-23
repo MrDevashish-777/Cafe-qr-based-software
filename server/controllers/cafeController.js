@@ -25,7 +25,7 @@ exports.getCafeById = async (req, res) => {
 
 exports.createCafe = async (req, res) => {
   try {
-    const { name, address, numberOfTables, logoUrl, brandImageUrl, taxPercent, discountType, discountValue, discountPercent } = req.body;
+    const { name, address, numberOfTables, logoUrl, brandImageUrl, taxPercent, discountType, discountValue, discountPercent, showcaseHighlights, showcaseCommunityNotes, showcaseCommunityShots } = req.body;
     if (!name) return res.status(400).json({ message: "name is required" });
 
     const cafe = await Cafe.create({
@@ -41,6 +41,25 @@ exports.createCafe = async (req, res) => {
         : typeof discountPercent !== "undefined"
           ? Number(discountPercent || 0)
           : 0,
+      showcaseHighlights: Array.isArray(showcaseHighlights)
+        ? showcaseHighlights.map((it = {}) => ({
+            name: typeof it.name === "string" ? it.name : "",
+            note: typeof it.note === "string" ? it.note : "",
+            tag: typeof it.tag === "string" ? it.tag : "",
+            price: typeof it.price !== "undefined" ? Number(it.price || 0) : 0,
+            image: typeof it.image === "string" ? it.image : "",
+          }))
+        : undefined,
+      showcaseCommunityNotes: Array.isArray(showcaseCommunityNotes)
+        ? showcaseCommunityNotes.map((it = {}) => ({
+            quote: typeof it.quote === "string" ? it.quote : "",
+            name: typeof it.name === "string" ? it.name : "",
+            tag: typeof it.tag === "string" ? it.tag : "",
+          }))
+        : undefined,
+      showcaseCommunityShots: Array.isArray(showcaseCommunityShots)
+        ? showcaseCommunityShots.filter((s) => typeof s === "string").map((s) => s)
+        : undefined,
     });
 
     const tableCount = cafe.numberOfTables || 0;
@@ -76,7 +95,7 @@ exports.resetTableSessions = async (req, res) => {
 
 exports.updateCafe = async (req, res) => {
   try {
-    const { name, address, numberOfTables, logoUrl, brandImageUrl, isActive, taxPercent, discountType, discountValue, discountPercent } = req.body;
+    const { name, address, numberOfTables, logoUrl, brandImageUrl, isActive, taxPercent, discountType, discountValue, discountPercent, showcaseHighlights, showcaseCommunityNotes, showcaseCommunityShots } = req.body;
     const updates = {};
     if (typeof name === "string") updates.name = name;
     if (typeof address === "string") updates.address = address;
@@ -100,6 +119,25 @@ exports.updateCafe = async (req, res) => {
     if (typeof req.body.primaryColor === "string") updates.primaryColor = req.body.primaryColor;
     if (typeof req.body.accentColor === "string") updates.accentColor = req.body.accentColor;
     if (typeof req.body.venueTimezone === "string") updates.venueTimezone = req.body.venueTimezone;
+    if (Array.isArray(showcaseHighlights)) {
+      updates.showcaseHighlights = showcaseHighlights.map((it = {}) => ({
+        name: typeof it.name === "string" ? it.name : "",
+        note: typeof it.note === "string" ? it.note : "",
+        tag: typeof it.tag === "string" ? it.tag : "",
+        price: typeof it.price !== "undefined" ? Number(it.price || 0) : 0,
+        image: typeof it.image === "string" ? it.image : "",
+      }));
+    }
+    if (Array.isArray(showcaseCommunityNotes)) {
+      updates.showcaseCommunityNotes = showcaseCommunityNotes.map((it = {}) => ({
+        quote: typeof it.quote === "string" ? it.quote : "",
+        name: typeof it.name === "string" ? it.name : "",
+        tag: typeof it.tag === "string" ? it.tag : "",
+      }));
+    }
+    if (Array.isArray(showcaseCommunityShots)) {
+      updates.showcaseCommunityShots = showcaseCommunityShots.filter((s) => typeof s === "string").map((s) => s);
+    }
 
     const cafe = await Cafe.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!cafe) return res.status(404).json({ message: "Cafe not found" });

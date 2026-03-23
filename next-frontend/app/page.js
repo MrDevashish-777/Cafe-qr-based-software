@@ -12,11 +12,10 @@ import {
   Bean,
   Coffee,
   Clock,
-  Flame,
   Instagram,
-  Leaf,
   MapPin,
   QrCode,
+  Menu,
   Sparkles,
   Star,
   Wind,
@@ -30,26 +29,6 @@ const cloudBase = cloudName
 const buildImage = (publicId, transforms = "f_auto,q_auto") =>
   `${cloudBase}/${transforms}/${publicId}`;
 
-const brewTabs = [
-  {
-    id: "espresso",
-    label: "Espresso",
-    icon: Flame,
-    text: "High pressure, 25–30s, caramelized sugars and a velvet crema — the heart of our bar.",
-  },
-  {
-    id: "filter",
-    label: "Slow bar",
-    icon: Wind,
-    text: "Pour-over and immersion brews that highlight origin: florals, citrus, and tea-like clarity.",
-  },
-  {
-    id: "cold",
-    label: "Cold",
-    icon: Leaf,
-    text: "Extended steeping for chocolate tones and a silky body — perfect for warm afternoons.",
-  },
-];
 
 const moments = [
   { title: "Morning light", copy: "First cups pulled while the city wakes — aroma over the bar." },
@@ -111,21 +90,6 @@ const communityNotes = [
     name: "Nikita M.",
     tag: "Community host",
   },
-  {
-    quote: "Chai oat latte is unreal. Smooth, balanced, and not too sweet.",
-    name: "Aman R.",
-    tag: "Latte loyalist",
-  },
-  {
-    quote: "Their cold brew stays clean and bright, even on hot afternoons.",
-    name: "Sara L.",
-    tag: "Cold bar fan",
-  },
-  {
-    quote: "Calm space, fast Wi‑Fi, and a pastry that disappears in minutes.",
-    name: "Dev P.",
-    tag: "Weekend regular",
-  },
 ];
 
 const communityShots = [
@@ -136,13 +100,13 @@ const communityShots = [
 ];
 
 export default function Home() {
-  const [brew, setBrew] = useState("espresso");
   const reducedMotion = useReducedMotion();
   const mounted = useMounted();
   const motionOn = mounted && !reducedMotion;
   const [highlightItems, setHighlightItems] = useState(signatureSips);
   const [communityReviewNotes, setCommunityReviewNotes] = useState(communityNotes);
   const [communityReviewShots, setCommunityReviewShots] = useState(communityShots);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const baseUrl = getApiBaseUrl();
@@ -215,9 +179,6 @@ export default function Home() {
             <a href="#story" className="transition hover:text-amber-800">
               Story
             </a>
-            <a href="#craft" className="transition hover:text-amber-800">
-              Craft
-            </a>
             <a href="#menu" className="transition hover:text-amber-800">
               Menu
             </a>
@@ -231,7 +192,40 @@ export default function Home() {
               Team login
             </a>
           </nav>
+          <div className="md:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-800 shadow-sm transition hover:bg-stone-50"
+              aria-expanded={mobileMenuOpen}
+              aria-label="Toggle navigation"
+            >
+              <Menu className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
         </div>
+        {mobileMenuOpen && (
+          <div className="border-t border-stone-200/60 bg-[#faf7f2] md:hidden">
+            <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 text-sm font-semibold text-stone-700">
+              <a href="#story" className="transition hover:text-amber-800" onClick={() => setMobileMenuOpen(false)}>
+                Story
+              </a>
+              <a href="#menu" className="transition hover:text-amber-800" onClick={() => setMobileMenuOpen(false)}>
+                Menu
+              </a>
+              <a href="#visit" className="transition hover:text-amber-800" onClick={() => setMobileMenuOpen(false)}>
+                Visit
+              </a>
+              <a
+                href="/login"
+                className="mt-2 inline-flex items-center justify-center rounded-full bg-stone-900 px-5 py-2 text-white shadow-md transition hover:bg-stone-800"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Team login
+              </a>
+            </div>
+          </div>
+        )}
       </header>
 
       <main id="main">
@@ -430,51 +424,6 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="craft" className="scroll-mt-24 py-20">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <div>
-                <h2 className="font-display text-3xl font-bold text-stone-900 sm:text-4xl">Pick your brew lane</h2>
-                <p className="mt-2 max-w-xl text-stone-600">Tap a style — how we think about each cup on the bar.</p>
-              </div>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-2">
-              {brewTabs.map((t) => {
-                const Icon = t.icon;
-                const active = brew === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setBrew(t.id)}
-                    className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition ${
-                      active
-                        ? "bg-stone-900 text-amber-50 shadow-lg"
-                        : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden />
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-8 rounded-3xl border border-stone-200 bg-gradient-to-br from-white to-amber-50/50 p-8 shadow-inner">
-              {brewTabs.map((t) =>
-                brew === t.id ? (
-                  <motion.p
-                    key={t.id}
-                    initial={motionOn ? { opacity: 0 } : false}
-                    animate={{ opacity: 1 }}
-                    className="text-lg leading-relaxed text-stone-700"
-                  >
-                    {t.text}
-                  </motion.p>
-                ) : null
-              )}
-            </div>
-          </div>
-        </section>
 
         <ShowcaseMenu />
 
@@ -498,11 +447,11 @@ export default function Home() {
                 {communityReviewNotes.map((note) => (
                   <div key={note.name} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-amber-700">
-                      <Star className="h-4 w-4" aria-hidden />
-                      <Star className="h-4 w-4" aria-hidden />
-                      <Star className="h-4 w-4" aria-hidden />
-                      <Star className="h-4 w-4" aria-hidden />
-                      <Star className="h-4 w-4" aria-hidden />
+                      <Star className="h-4 w-4 fill-amber-500 text-amber-500" aria-hidden />
+                      <Star className="h-4 w-4 fill-amber-500 text-amber-500" aria-hidden />
+                      <Star className="h-4 w-4 fill-amber-500 text-amber-500" aria-hidden />
+                      <Star className="h-4 w-4 fill-amber-500 text-amber-500" aria-hidden />
+                      <Star className="h-4 w-4 fill-amber-500 text-amber-500" aria-hidden />
                     </div>
                     <p className="mt-3 text-sm leading-snug text-stone-700">"{note.quote}"</p>
                     <div className="mt-3 text-xs font-semibold uppercase tracking-widest text-stone-400">{note.name}</div>
@@ -537,7 +486,7 @@ export default function Home() {
                       <MapPin className="h-4 w-4" />
                       <span className="text-xs font-semibold uppercase tracking-widest">Location</span>
                     </div>
-                    <p className="mt-2 text-amber-50">Set your cafe address in admin to show it here.</p>
+                    <p className="mt-2 text-amber-50">Shop no 8, Pioneer Regency, near RR Nursing home, KT Nagar, Nagpur, Maharashtra 440013</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-center gap-2 text-amber-300">
