@@ -36,13 +36,15 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: [
-      'https://coffee-culture-nagpur.netlify.app',
-      'http://localhost:3000', // for local development
-    ],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const allowed = new Set([...allowedOrigins, ...envOrigins]);
+      if (allowed.has(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(cookieParser());
