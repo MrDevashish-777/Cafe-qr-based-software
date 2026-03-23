@@ -15,6 +15,7 @@ import {
   Instagram,
   MapPin,
   QrCode,
+  Menu,
   Sparkles,
   Star,
   Wind,
@@ -105,6 +106,7 @@ export default function Home() {
   const [highlightItems, setHighlightItems] = useState(signatureSips);
   const [communityReviewNotes, setCommunityReviewNotes] = useState(communityNotes);
   const [communityReviewShots, setCommunityReviewShots] = useState(communityShots);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const baseUrl = getApiBaseUrl();
@@ -177,9 +179,6 @@ export default function Home() {
             <a href="#story" className="transition hover:text-amber-800">
               Story
             </a>
-            <a href="#craft" className="transition hover:text-amber-800">
-              Craft
-            </a>
             <a href="#menu" className="transition hover:text-amber-800">
               Menu
             </a>
@@ -193,7 +192,40 @@ export default function Home() {
               Team login
             </a>
           </nav>
+          <div className="md:hidden">
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-white text-stone-800 shadow-sm transition hover:bg-stone-50"
+              aria-expanded={mobileMenuOpen}
+              aria-label="Toggle navigation"
+            >
+              <Menu className="h-5 w-5" aria-hidden />
+            </button>
+          </div>
         </div>
+        {mobileMenuOpen && (
+          <div className="border-t border-stone-200/60 bg-[#faf7f2] md:hidden">
+            <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-4 text-sm font-semibold text-stone-700">
+              <a href="#story" className="transition hover:text-amber-800" onClick={() => setMobileMenuOpen(false)}>
+                Story
+              </a>
+              <a href="#menu" className="transition hover:text-amber-800" onClick={() => setMobileMenuOpen(false)}>
+                Menu
+              </a>
+              <a href="#visit" className="transition hover:text-amber-800" onClick={() => setMobileMenuOpen(false)}>
+                Visit
+              </a>
+              <a
+                href="/login"
+                className="mt-2 inline-flex items-center justify-center rounded-full bg-stone-900 px-5 py-2 text-white shadow-md transition hover:bg-stone-800"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Team login
+              </a>
+            </div>
+          </div>
+        )}
       </header>
 
       <main id="main">
@@ -454,7 +486,7 @@ export default function Home() {
                       <MapPin className="h-4 w-4" />
                       <span className="text-xs font-semibold uppercase tracking-widest">Location</span>
                     </div>
-                    <p className="mt-2 text-amber-50">Set your cafe address in admin to show it here.</p>
+                    <p className="mt-2 text-amber-50">Shop no 8, Pioneer Regency, near RR Nursing home, KT Nagar, Nagpur, Maharashtra 440013</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-center gap-2 text-amber-300">
