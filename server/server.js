@@ -25,6 +25,7 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5000",
   "https://cafe-qr-based-software.onrender.com",
+  "https://coffee-culture-nagpur.netlify.app",
 ];
 
 app.use(
