@@ -1,6 +1,7 @@
 ﻿const mongoose = require("mongoose");
 const Cafe = require("../models/Cafe");
 const Table = require("../models/Table");
+const { signTableToken } = require("../utils/tableToken");
 
 function getCafeIdFromRequest(req) {
   if (req.user?.role === "super_admin") {
@@ -17,8 +18,12 @@ exports.listTables = async (req, res) => {
     const tables = await Table.find({ cafeId, isActive: true })
       .sort({ tableNumber: 1 })
       .lean();
+    const withTokens = tables.map((t) => ({
+      ...t,
+      tableToken: signTableToken(cafeId, t.tableNumber),
+    }));
 
-    return res.json(tables);
+    return res.json(withTokens);
   } catch (error) {
     return res.status(500).json({ message: "Server error", error });
   }
@@ -58,7 +63,10 @@ exports.createTable = async (req, res) => {
       await cafe.save();
     }
 
-    return res.status(201).json(created);
+    return res.status(201).json({
+      ...created.toObject(),
+      tableToken: signTableToken(cafeId, tableNumber),
+    });
   } catch (error) {
     return res.status(500).json({ message: "Server error", error });
   }
@@ -106,7 +114,11 @@ exports.generateTables = async (req, res) => {
     }
 
     const tables = await Table.find({ cafeId, isActive: true }).sort({ tableNumber: 1 }).lean();
-    return res.json({ created: toCreate.length, total: tables.length, tables });
+    const withTokens = tables.map((t) => ({
+      ...t,
+      tableToken: signTableToken(cafeId, t.tableNumber),
+    }));
+    return res.json({ created: toCreate.length, total: withTokens.length, tables: withTokens });
   } catch (error) {
     return res.status(500).json({ message: "Server error", error });
   }

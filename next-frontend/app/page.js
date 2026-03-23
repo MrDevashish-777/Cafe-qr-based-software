@@ -12,9 +12,7 @@ import {
   Bean,
   Coffee,
   Clock,
-  Flame,
   Instagram,
-  Leaf,
   MapPin,
   QrCode,
   Sparkles,
@@ -30,26 +28,6 @@ const cloudBase = cloudName
 const buildImage = (publicId, transforms = "f_auto,q_auto") =>
   `${cloudBase}/${transforms}/${publicId}`;
 
-const brewTabs = [
-  {
-    id: "espresso",
-    label: "Espresso",
-    icon: Flame,
-    text: "High pressure, 25–30s, caramelized sugars and a velvet crema — the heart of our bar.",
-  },
-  {
-    id: "filter",
-    label: "Slow bar",
-    icon: Wind,
-    text: "Pour-over and immersion brews that highlight origin: florals, citrus, and tea-like clarity.",
-  },
-  {
-    id: "cold",
-    label: "Cold",
-    icon: Leaf,
-    text: "Extended steeping for chocolate tones and a silky body — perfect for warm afternoons.",
-  },
-];
 
 const moments = [
   { title: "Morning light", copy: "First cups pulled while the city wakes — aroma over the bar." },
@@ -111,21 +89,6 @@ const communityNotes = [
     name: "Nikita M.",
     tag: "Community host",
   },
-  {
-    quote: "Chai oat latte is unreal. Smooth, balanced, and not too sweet.",
-    name: "Aman R.",
-    tag: "Latte loyalist",
-  },
-  {
-    quote: "Their cold brew stays clean and bright, even on hot afternoons.",
-    name: "Sara L.",
-    tag: "Cold bar fan",
-  },
-  {
-    quote: "Calm space, fast Wi‑Fi, and a pastry that disappears in minutes.",
-    name: "Dev P.",
-    tag: "Weekend regular",
-  },
 ];
 
 const communityShots = [
@@ -136,7 +99,6 @@ const communityShots = [
 ];
 
 export default function Home() {
-  const [brew, setBrew] = useState("espresso");
   const reducedMotion = useReducedMotion();
   const mounted = useMounted();
   const motionOn = mounted && !reducedMotion;
@@ -430,51 +392,6 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="craft" className="scroll-mt-24 py-20">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="flex flex-wrap items-end justify-between gap-6">
-              <div>
-                <h2 className="font-display text-3xl font-bold text-stone-900 sm:text-4xl">Pick your brew lane</h2>
-                <p className="mt-2 max-w-xl text-stone-600">Tap a style — how we think about each cup on the bar.</p>
-              </div>
-            </div>
-            <div className="mt-8 flex flex-wrap gap-2">
-              {brewTabs.map((t) => {
-                const Icon = t.icon;
-                const active = brew === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setBrew(t.id)}
-                    className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition ${
-                      active
-                        ? "bg-stone-900 text-amber-50 shadow-lg"
-                        : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-50"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden />
-                    {t.label}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="mt-8 rounded-3xl border border-stone-200 bg-gradient-to-br from-white to-amber-50/50 p-8 shadow-inner">
-              {brewTabs.map((t) =>
-                brew === t.id ? (
-                  <motion.p
-                    key={t.id}
-                    initial={motionOn ? { opacity: 0 } : false}
-                    animate={{ opacity: 1 }}
-                    className="text-lg leading-relaxed text-stone-700"
-                  >
-                    {t.text}
-                  </motion.p>
-                ) : null
-              )}
-            </div>
-          </div>
-        </section>
 
         <ShowcaseMenu />
 

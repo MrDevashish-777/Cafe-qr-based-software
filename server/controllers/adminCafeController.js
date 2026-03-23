@@ -46,6 +46,27 @@ exports.updateCafe = async (req, res) => {
     if (typeof req.body.primaryColor === "string") updates.primaryColor = req.body.primaryColor;
     if (typeof req.body.accentColor === "string") updates.accentColor = req.body.accentColor;
     if (typeof req.body.venueTimezone === "string") updates.venueTimezone = req.body.venueTimezone;
+    if (Array.isArray(req.body.showcaseHighlights)) {
+      updates.showcaseHighlights = req.body.showcaseHighlights.map((it = {}) => ({
+        name: typeof it.name === "string" ? it.name : "",
+        note: typeof it.note === "string" ? it.note : "",
+        tag: typeof it.tag === "string" ? it.tag : "",
+        price: typeof it.price !== "undefined" ? Number(it.price || 0) : 0,
+        image: typeof it.image === "string" ? it.image : "",
+      }));
+    }
+    if (Array.isArray(req.body.showcaseCommunityNotes)) {
+      updates.showcaseCommunityNotes = req.body.showcaseCommunityNotes.map((it = {}) => ({
+        quote: typeof it.quote === "string" ? it.quote : "",
+        name: typeof it.name === "string" ? it.name : "",
+        tag: typeof it.tag === "string" ? it.tag : "",
+      }));
+    }
+    if (Array.isArray(req.body.showcaseCommunityShots)) {
+      updates.showcaseCommunityShots = req.body.showcaseCommunityShots
+        .filter((s) => typeof s === "string")
+        .map((s) => s);
+    }
 
     const cafe = await Cafe.findByIdAndUpdate(cafeId, updates, { new: true });
     if (!cafe) return res.status(404).json({ message: "Cafe not found" });

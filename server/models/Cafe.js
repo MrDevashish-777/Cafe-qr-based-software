@@ -19,6 +19,24 @@ const cafeSchema = new mongoose.Schema(
     primaryColor: { type: String, default: "", trim: true },
     accentColor: { type: String, default: "", trim: true },
     venueTimezone: { type: String, default: "UTC", trim: true },
+    /** Marketing site content */
+    showcaseHighlights: [
+      {
+        name: { type: String, default: "", trim: true },
+        note: { type: String, default: "", trim: true },
+        tag: { type: String, default: "", trim: true },
+        price: { type: Number, default: 0, min: 0 },
+        image: { type: String, default: "", trim: true },
+      },
+    ],
+    showcaseCommunityNotes: [
+      {
+        quote: { type: String, default: "", trim: true },
+        name: { type: String, default: "", trim: true },
+        tag: { type: String, default: "", trim: true },
+      },
+    ],
+    showcaseCommunityShots: [{ type: String, default: "", trim: true }],
   },
   { timestamps: true }
 );
