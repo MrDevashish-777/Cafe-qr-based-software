@@ -12,6 +12,7 @@ import { CustomerShell } from "../../../../components/CustomerShell";
 import SoundControl from "../../../../components/SoundControl";
 import { maybeNotifyBrowser, playCustomerStatus } from "../../../../lib/sounds";
 import { AppLoading } from "../../../../components/AppLoading";
+import { useTableGuard } from "../../../../lib/useTableGuard";
 
 const displaySteps = [
   { key: "accepted", label: "Order Accepted" },
@@ -35,6 +36,7 @@ export default function OrderStatusPage() {
   const cafeId = params.cafeId;
   const orderId = params.orderId;
   const tableNumber = useMemo(() => searchParams.get("table"), [searchParams]);
+  const tableToken = useMemo(() => searchParams.get("t") || "", [searchParams]);
   const router = useRouter();
 
   const [order, setOrder] = useState(null);
@@ -42,8 +44,16 @@ export default function OrderStatusPage() {
   const [socketState, setSocketState] = useState("disconnected");
   const [cafeInfo, setCafeInfo] = useState(null);
   const skipFirstStatusFx = useRef(true);
+  const tableGuard = useTableGuard({
+    cafeId,
+    tableNumber,
+    token: tableToken,
+    router,
+    redirectTo: (table, token) => `/${cafeId}/order/${orderId}?table=${table}&t=${encodeURIComponent(token)}`,
+  });
 
   const load = async () => {
+    if (tableGuard.status !== "ok") return;
     try {
       const found = await apiFetch(`/api/orders/${cafeId}/id/${orderId}`);
       setOrder(found || null);
@@ -58,12 +68,12 @@ export default function OrderStatusPage() {
 
   useEffect(() => {
     setError("");
-    if (cafeId && orderId) load();
+    if (cafeId && orderId && tableGuard.status === "ok") load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cafeId, orderId]);
+  }, [cafeId, orderId, tableGuard.status]);
 
   useEffect(() => {
-    if (!cafeId || !orderId) return;
+    if (!cafeId || !orderId || tableGuard.status !== "ok") return;
 
     const socket = connectCafeSocket(cafeId);
     setSocketState("connecting");
@@ -87,7 +97,7 @@ export default function OrderStatusPage() {
       socket.off("ORDER_PAID", onOrder);
       socket.disconnect();
     };
-  }, [cafeId, orderId]);
+  }, [cafeId, orderId, tableGuard.status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -116,6 +126,27 @@ export default function OrderStatusPage() {
     maybeNotifyBrowser("Order update", order.status);
   }, [order?.status]);
 
+  if (tableGuard.status === "checking") {
+    return (
+      <CustomerShell bottomInsetClass="pb-36">
+        <div className="mx-auto w-full max-w-md px-4 pt-10">
+          <div className="text-center text-sm text-slate-600">Validating table link…</div>
+        </div>
+      </CustomerShell>
+    );
+  }
+
+  if (tableGuard.status === "error") {
+    return (
+      <CustomerShell bottomInsetClass="pb-36">
+        <div className="mx-auto w-full max-w-md px-4 pt-16 text-center">
+          <div className="text-lg font-semibold text-slate-900">Invalid table link</div>
+          <div className="mt-2 text-sm text-slate-600">{tableGuard.error}</div>
+        </div>
+      </CustomerShell>
+    );
+  }
+
   return (
     <CustomerShell bottomInsetClass="pb-36">
     <main className="min-h-screen">
@@ -124,7 +155,7 @@ export default function OrderStatusPage() {
           <Button
             variant="outline"
             className="h-9 w-9 shrink-0 rounded-full p-0"
-            onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}`)}
+            onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}
           >
             <ArrowLeft size={18} className="text-slate-900" />
           </Button>
@@ -279,7 +310,7 @@ export default function OrderStatusPage() {
           </Card>
         )}
       </div>
-      <CustomerBottomNav cafeId={cafeId} />
+      <CustomerBottomNav cafeId={cafeId} tableNumber={tableNumber} tableToken={tableToken} />
     </main>
     </CustomerShell>
   );

@@ -27,6 +27,7 @@ import { Input } from "../../../components/ui/Input";
 import { useMounted } from "../../../lib/useMounted";
 import { AppLoading } from "../../../components/AppLoading";
 import { MenuFloatingCart } from "../../../components/menu/MenuFloatingCart";
+import { useTableGuard } from "../../../lib/useTableGuard";
 
 function cartKey(cafeId, tableNumber) {
   return `cart:${cafeId}:table:${tableNumber}`;
@@ -43,6 +44,7 @@ export default function MenuPage() {
     const t = searchParams.get("table");
     return t ? parseInt(t, 10) : null;
   }, [searchParams]);
+  const tableToken = useMemo(() => searchParams.get("t") || "", [searchParams]);
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +57,13 @@ export default function MenuPage() {
   /** guest = not signed in; ok = signed in (may have zero favorites) */
   const [favoritesState, setFavoritesState] = useState({ status: "loading", items: [] });
   const reducedMotion = useReducedMotion();
+  const tableGuard = useTableGuard({
+    cafeId,
+    tableNumber,
+    token: tableToken,
+    router,
+    redirectTo: (table, token) => `/${cafeId}/menu?table=${table}&t=${encodeURIComponent(token)}`,
+  });
 
   useEffect(() => {
     if (!cafeId || !tableNumber) return;
@@ -215,7 +224,7 @@ export default function MenuPage() {
 
   const openCart = () => {
     if (!tableNumber) return;
-    router.push(`/${cafeId}/cart?table=${tableNumber}`);
+    router.push(`/${cafeId}/cart?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`);
   };
 
   const listItemVariants =
@@ -233,12 +242,19 @@ export default function MenuPage() {
 
   return (
     <CustomerShell bottomInsetClass="pb-36" className="menu-page-surface">
-      <main className="min-h-screen">
+      {tableGuard.status === "checking" ? (
+        <div className="mx-auto w-full max-w-md px-4 pt-10">
+          <AppLoading label="Validating table link" />
+        </div>
+      ) : tableGuard.status === "error" ? (
+        <div className="mx-auto w-full max-w-md px-4 pt-16 text-center">
+          <div className="text-lg font-semibold text-slate-900">Invalid table link</div>
+          <div className="mt-2 text-sm text-slate-600">{tableGuard.error}</div>
+        </div>
+      ) : (
+        <main className="min-h-screen">
       <div className="sticky top-0 z-20 border-b border-orange-100/50 bg-white/90 shadow-sm shadow-orange-100/30 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
-          <Button variant="outline" className="h-9 w-9 shrink-0 rounded-full p-0" onClick={() => router.back()}>
-            <ArrowLeft size={18} className="text-slate-900" />
-          </Button>
           <div className="min-w-0 flex-1 px-2">
             <div className="flex items-center justify-between">
               <div>
@@ -250,14 +266,18 @@ export default function MenuPage() {
               </div>
             </div>
             <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-              <MapPin size={12} />
+              <MapPin size={12} strokeWidth={2.2} className="text-slate-700" />
               <span>{cafe?.address || "Freshly brewed, made to order."}</span>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <SoundControl />
-            <Button variant="outline" className="relative h-9 w-9 rounded-full p-0" onClick={openCart}>
-              <ShoppingCart size={18} className="text-slate-900" />
+            <Button
+              variant="outline"
+              className="relative h-10 w-10 rounded-full p-0 border-2 border-slate-400 bg-white shadow-md hover:bg-white ring-1 ring-slate-200"
+              onClick={openCart}
+            >
+              <ShoppingCart size={18} strokeWidth={2.2} className="text-slate-900" />
               {cartCount > 0 && (
                 <span className="absolute -right-1 -top-1 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
                   {cartCount}
@@ -590,9 +610,10 @@ export default function MenuPage() {
         )}
       </div>
 
-      <MenuFloatingCart cartCount={cartCount} total={total} onViewCart={openCart} />
-      <CustomerBottomNav cafeId={cafeId} />
-    </main>
+          <MenuFloatingCart cartCount={cartCount} total={total} onViewCart={openCart} />
+          <CustomerBottomNav cafeId={cafeId} tableNumber={tableNumber} tableToken={tableToken} />
+        </main>
+      )}
     </CustomerShell>
   );
 }

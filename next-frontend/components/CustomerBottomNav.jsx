@@ -1,17 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { ShoppingCart, UtensilsCrossed, ClipboardList } from "lucide-react";
 
-export default function CustomerBottomNav({ cafeId }) {
+export default function CustomerBottomNav({ cafeId, tableNumber, tableToken }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const table = searchParams.get("table");
+  const [table, setTable] = useState(() =>
+    tableNumber !== undefined && tableNumber !== null && tableNumber !== "" ? String(tableNumber) : ""
+  );
+  const tokenParam = tableToken ? `&t=${encodeURIComponent(tableToken)}` : "";
+
+  useEffect(() => {
+    if (tableNumber !== undefined && tableNumber !== null && tableNumber !== "") {
+      setTable(String(tableNumber));
+      return;
+    }
+    const next = searchParams.get("table");
+    if (next !== null && next !== undefined) setTable(next);
+  }, [searchParams, tableNumber]);
 
   const links = [
-    { key: "menu", label: "Menu", href: `/${cafeId}/menu?table=${table || ""}`, icon: UtensilsCrossed },
-    { key: "orders", label: "Orders", href: `/${cafeId}/orders?table=${table || ""}`, icon: ClipboardList },
-    { key: "cart", label: "Cart", href: `/${cafeId}/cart?table=${table || ""}`, icon: ShoppingCart },
+    { key: "menu", label: "Menu", href: `/${cafeId}/menu?table=${table || ""}${tokenParam}`, icon: UtensilsCrossed },
+    { key: "orders", label: "Orders", href: `/${cafeId}/orders?table=${table || ""}${tokenParam}`, icon: ClipboardList },
+    { key: "cart", label: "Cart", href: `/${cafeId}/cart?table=${table || ""}${tokenParam}`, icon: ShoppingCart },
   ];
 
   const isActive = (key) => pathname?.includes(`/${key}`);

@@ -15,6 +15,7 @@ import { getOrCreateVisitId, rotateVisitId } from "../../../lib/visitSession";
 import { maybeNotifyBrowser, playCustomerStatus, requestNotificationPermission } from "../../../lib/sounds";
 import StaffAlertBanner from "../../../components/StaffAlertBanner";
 import { AppLoading } from "../../../components/AppLoading";
+import { useTableGuard } from "../../../lib/useTableGuard";
 
 const statusSteps = ["pending", "accepted", "preparing", "ready", "served", "paid"];
 
@@ -25,6 +26,7 @@ export default function OrdersPage() {
   const cafeId = params.cafeId;
   const venueApi = isVenueOrderApiEnabled();
   const tableNumber = useMemo(() => searchParams.get("table"), [searchParams]);
+  const tableToken = useMemo(() => searchParams.get("t") || "", [searchParams]);
 
   const [visitId, setVisitId] = useState("");
   const [orders, setOrders] = useState([]);
@@ -33,6 +35,13 @@ export default function OrdersPage() {
   const [socketState, setSocketState] = useState("disconnected");
   const [cafeInfo, setCafeInfo] = useState(null);
   const [statusToast, setStatusToast] = useState("");
+  const tableGuard = useTableGuard({
+    cafeId,
+    tableNumber,
+    token: tableToken,
+    router,
+    redirectTo: (table, token) => `/${cafeId}/orders?table=${table}&t=${encodeURIComponent(token)}`,
+  });
 
   useEffect(() => {
     if (!cafeId || !tableNumber) return;
@@ -40,14 +49,15 @@ export default function OrdersPage() {
   }, [cafeId, tableNumber]);
 
   const load = async () => {
-    if (!cafeId || !tableNumber || !visitId) return;
+    if (!cafeId || !tableNumber || !visitId || tableGuard.status !== "ok") return;
     setLoading(true);
     setError("");
     try {
       const q = new URLSearchParams({ visitId });
+      const tokenParam = `t=${encodeURIComponent(tableToken)}`;
       const path = venueApi
-        ? `/api/orders/venue/table/${tableNumber}?${q.toString()}`
-        : `/api/orders/${cafeId}/table/${tableNumber}?${q.toString()}`;
+        ? `/api/orders/venue/table/${tableNumber}?${q.toString()}&${tokenParam}`
+        : `/api/orders/${cafeId}/table/${tableNumber}?${q.toString()}&${tokenParam}`;
       const data = await apiFetch(path);
       setOrders(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -58,8 +68,8 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    if (cafeId && tableNumber && visitId) load();
-  }, [cafeId, tableNumber, visitId]);
+    if (cafeId && tableNumber && visitId && tableGuard.status === "ok") load();
+  }, [cafeId, tableNumber, visitId, tableGuard.status]);
 
   useEffect(() => {
     let cancelled = false;
@@ -79,7 +89,7 @@ export default function OrdersPage() {
   }, [cafeId]);
 
   useEffect(() => {
-    if (!cafeId || !tableNumber || !visitId) return;
+    if (!cafeId || !tableNumber || !visitId || tableGuard.status !== "ok") return;
     const socket = connectCafeSocket(cafeId);
     setSocketState("connecting");
 
@@ -116,7 +126,7 @@ export default function OrdersPage() {
       socket.off("ORDER_PAID", onOrder);
       socket.disconnect();
     };
-  }, [cafeId, tableNumber, visitId]);
+  }, [cafeId, tableNumber, visitId, tableGuard.status]);
 
   useEffect(() => {
     if (!cafeId || !tableNumber || orders.length === 0) return;
@@ -127,12 +137,33 @@ export default function OrdersPage() {
     setOrders([]);
   }, [orders, cafeId, tableNumber]);
 
+  if (tableGuard.status === "checking") {
+    return (
+      <CustomerShell bottomInsetClass="pb-36">
+        <div className="mx-auto w-full max-w-md px-4 pt-10">
+          <div className="text-center text-sm text-slate-600">Validating table link…</div>
+        </div>
+      </CustomerShell>
+    );
+  }
+
+  if (tableGuard.status === "error") {
+    return (
+      <CustomerShell bottomInsetClass="pb-36">
+        <div className="mx-auto w-full max-w-md px-4 pt-16 text-center">
+          <div className="text-lg font-semibold text-slate-900">Invalid table link</div>
+          <div className="mt-2 text-sm text-slate-600">{tableGuard.error}</div>
+        </div>
+      </CustomerShell>
+    );
+  }
+
   return (
     <CustomerShell bottomInsetClass="pb-36">
     <main className="min-h-screen">
       <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
-          <Button variant="outline" className="h-9 w-9 shrink-0 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}`)}>
+          <Button variant="outline" className="h-9 w-9 shrink-0 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}>
             <ArrowLeft size={18} className="text-slate-900" />
           </Button>
           <div className="min-w-0 flex-1 text-center">
@@ -261,7 +292,7 @@ export default function OrdersPage() {
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => router.push(`/${cafeId}/order/${order._id}?table=${tableNumber}`)}
+                        onClick={() => router.push(`/${cafeId}/order/${order._id}?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}
                       >
                         Track Order
                       </Button>
@@ -278,7 +309,7 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
-      <CustomerBottomNav cafeId={cafeId} />
+      <CustomerBottomNav cafeId={cafeId} tableNumber={tableNumber} tableToken={tableToken} />
     </main>
     </CustomerShell>
   );

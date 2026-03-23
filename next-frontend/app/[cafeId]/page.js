@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { apiFetch } from "../../lib/api";
+import { setTableSession } from "../../lib/tableSession";
 
 export default function CafeEntryPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function CafeEntryPage() {
     const t = searchParams.get("table");
     return t ? parseInt(t, 10) : null;
   }, [searchParams]);
+  const tableToken = useMemo(() => searchParams.get("t") || "", [searchParams]);
 
   const [cafe, setCafe] = useState(null);
   const [splash, setSplash] = useState(true);
@@ -46,10 +48,25 @@ export default function CafeEntryPage() {
       setError("Missing table number (?table=1)");
       return;
     }
-    if (cafeId) {
-      router.replace(`/${cafeId}/menu?table=${tableNumber}`);
+    if (!tableToken) {
+      setError("Invalid table link. Please scan the table QR again.");
+      return;
     }
-  }, [splash, cafeId, tableNumber, router]);
+    if (!cafeId) return;
+    (async () => {
+      try {
+        await apiFetch(
+          `/api/qr/verify?cafeId=${encodeURIComponent(cafeId)}&tableNumber=${encodeURIComponent(
+            tableNumber
+          )}&t=${encodeURIComponent(tableToken)}`
+        );
+        setTableSession(cafeId, tableNumber, tableToken);
+        router.replace(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`);
+      } catch (e) {
+        setError(e?.message || "Invalid table link. Please scan the table QR again.");
+      }
+    })();
+  }, [splash, cafeId, tableNumber, tableToken, router]);
 
   if (splash) {
     return (

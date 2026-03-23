@@ -175,7 +175,11 @@ export default function AdminMenuPage() {
     latitude: "",
     longitude: "",
     serviceRadiusMeters: "",
+    showcaseHighlights: [],
+    showcaseCommunityNotes: [],
+    showcaseCommunityShots: [],
   });
+  const [showcaseUploading, setShowcaseUploading] = useState(false);
   const [cafeLoading, setCafeLoading] = useState(false);
   const [cafeError, setCafeError] = useState("");
   const [cafeSuccess, setCafeSuccess] = useState("");
@@ -402,6 +406,25 @@ export default function AdminMenuPage() {
         longitude: typeof data?.longitude === "number" ? String(data.longitude) : "",
         serviceRadiusMeters:
           typeof data?.serviceRadiusMeters === "number" ? String(data.serviceRadiusMeters) : "",
+        showcaseHighlights: Array.isArray(data?.showcaseHighlights)
+          ? data.showcaseHighlights.map((it) => ({
+              name: it?.name || "",
+              note: it?.note || "",
+              tag: it?.tag || "",
+              price: typeof it?.price === "number" ? String(it.price) : "",
+              image: it?.image || "",
+            }))
+          : [],
+        showcaseCommunityNotes: Array.isArray(data?.showcaseCommunityNotes)
+          ? data.showcaseCommunityNotes.map((it) => ({
+              quote: it?.quote || "",
+              name: it?.name || "",
+              tag: it?.tag || "",
+            }))
+          : [],
+        showcaseCommunityShots: Array.isArray(data?.showcaseCommunityShots)
+          ? data.showcaseCommunityShots.map((s) => s || "")
+          : [],
       });
     } catch (e) {
       setCafeError(e.message || "Failed to load cafe");
@@ -452,6 +475,21 @@ export default function AdminMenuPage() {
         latitude: cafeForm.latitude === "" ? null : Number(cafeForm.latitude),
         longitude: cafeForm.longitude === "" ? null : Number(cafeForm.longitude),
         serviceRadiusMeters: cafeForm.serviceRadiusMeters === "" ? 0 : Number(cafeForm.serviceRadiusMeters),
+        showcaseHighlights: (cafeForm.showcaseHighlights || []).map((it) => ({
+          name: it?.name || "",
+          note: it?.note || "",
+          tag: it?.tag || "",
+          price: it?.price === "" || typeof it?.price === "undefined" ? 0 : Number(it.price || 0),
+          image: it?.image || "",
+        })),
+        showcaseCommunityNotes: (cafeForm.showcaseCommunityNotes || []).map((it) => ({
+          quote: it?.quote || "",
+          name: it?.name || "",
+          tag: it?.tag || "",
+        })),
+        showcaseCommunityShots: (cafeForm.showcaseCommunityShots || [])
+          .filter((s) => typeof s === "string")
+          .map((s) => s),
       };
       if (role === "super_admin") body.cafeId = cafeIdForAdmin;
       const updated = await apiFetch("/api/admin/cafe", {
@@ -493,6 +531,78 @@ export default function AdminMenuPage() {
     } finally {
       setImageUploading(false);
     }
+  };
+
+  const updateHighlight = (idx, patch) => {
+    setCafeForm((prev) => {
+      const next = [...(prev.showcaseHighlights || [])];
+      next[idx] = { ...next[idx], ...patch };
+      return { ...prev, showcaseHighlights: next };
+    });
+  };
+
+  const addHighlight = () => {
+    setCafeForm((prev) => ({
+      ...prev,
+      showcaseHighlights: [
+        ...(prev.showcaseHighlights || []),
+        { name: "", note: "", tag: "", price: "", image: "" },
+      ],
+    }));
+  };
+
+  const removeHighlight = (idx) => {
+    setCafeForm((prev) => ({
+      ...prev,
+      showcaseHighlights: (prev.showcaseHighlights || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const updateCommunityNote = (idx, patch) => {
+    setCafeForm((prev) => {
+      const next = [...(prev.showcaseCommunityNotes || [])];
+      next[idx] = { ...next[idx], ...patch };
+      return { ...prev, showcaseCommunityNotes: next };
+    });
+  };
+
+  const addCommunityNote = () => {
+    setCafeForm((prev) => ({
+      ...prev,
+      showcaseCommunityNotes: [
+        ...(prev.showcaseCommunityNotes || []),
+        { quote: "", name: "", tag: "" },
+      ],
+    }));
+  };
+
+  const removeCommunityNote = (idx) => {
+    setCafeForm((prev) => ({
+      ...prev,
+      showcaseCommunityNotes: (prev.showcaseCommunityNotes || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const updateCommunityShot = (idx, value) => {
+    setCafeForm((prev) => {
+      const next = [...(prev.showcaseCommunityShots || [])];
+      next[idx] = value;
+      return { ...prev, showcaseCommunityShots: next };
+    });
+  };
+
+  const addCommunityShot = () => {
+    setCafeForm((prev) => ({
+      ...prev,
+      showcaseCommunityShots: [...(prev.showcaseCommunityShots || []), ""],
+    }));
+  };
+
+  const removeCommunityShot = (idx) => {
+    setCafeForm((prev) => ({
+      ...prev,
+      showcaseCommunityShots: (prev.showcaseCommunityShots || []).filter((_, i) => i !== idx),
+    }));
   };
 
   const uploadMenuCsv = async (event) => {
@@ -1109,6 +1219,162 @@ export default function AdminMenuPage() {
                 <div className="md:col-span-2 text-xs text-slate-500">
                   Set latitude, longitude, and a radius &gt; 0 to restrict orders to guests within that distance.
                 </div>
+                <div className="md:col-span-2 mt-4 rounded-2xl border border-orange-100 bg-white/70 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-semibold text-slate-900">Homepage highlights</div>
+                    <Button variant="outline" type="button" onClick={addHighlight}>
+                      Add highlight
+                    </Button>
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    {(cafeForm.showcaseHighlights || []).length === 0 && (
+                      <div className="text-xs text-slate-500">Add items for “Highlights worth the detour”.</div>
+                    )}
+                    {(cafeForm.showcaseHighlights || []).map((item, idx) => (
+                      <div key={`highlight-${idx}`} className="rounded-2xl border border-slate-200 bg-white/90 p-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <Input
+                            value={item.name}
+                            onChange={(e) => updateHighlight(idx, { name: e.target.value })}
+                            placeholder="Item name"
+                          />
+                          <Input
+                            value={item.tag}
+                            onChange={(e) => updateHighlight(idx, { tag: e.target.value })}
+                            placeholder="Tag (e.g. Bestseller)"
+                          />
+                          <Input
+                            value={item.note}
+                            onChange={(e) => updateHighlight(idx, { note: e.target.value })}
+                            placeholder="Short note"
+                          />
+                          <Input
+                            value={item.price}
+                            onChange={(e) => updateHighlight(idx, { price: e.target.value })}
+                            placeholder="Price (INR)"
+                            type="number"
+                            min={0}
+                          />
+                          <Input
+                            value={item.image}
+                            onChange={(e) => updateHighlight(idx, { image: e.target.value })}
+                            placeholder="Image URL"
+                          />
+                          <div className="space-y-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) =>
+                                uploadCafeImage(
+                                  e.target.files?.[0],
+                                  (url) => updateHighlight(idx, { image: url }),
+                                  setShowcaseUploading
+                                )
+                              }
+                              className="text-sm text-slate-600"
+                            />
+                            {showcaseUploading && (
+                              <div className="text-xs text-slate-500">Uploading image...</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex justify-end">
+                          <Button variant="outline" type="button" onClick={() => removeHighlight(idx)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 mt-4 rounded-2xl border border-orange-100 bg-white/70 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-semibold text-slate-900">Regulars, rituals, reviews</div>
+                    <Button variant="outline" type="button" onClick={addCommunityNote}>
+                      Add review
+                    </Button>
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    {(cafeForm.showcaseCommunityNotes || []).length === 0 && (
+                      <div className="text-xs text-slate-500">Add quotes for the reviews section.</div>
+                    )}
+                    {(cafeForm.showcaseCommunityNotes || []).map((note, idx) => (
+                      <div key={`review-${idx}`} className="rounded-2xl border border-slate-200 bg-white/90 p-3">
+                        <Textarea
+                          value={note.quote}
+                          onChange={(e) => updateCommunityNote(idx, { quote: e.target.value })}
+                          placeholder="Quote"
+                          rows={2}
+                        />
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <Input
+                            value={note.name}
+                            onChange={(e) => updateCommunityNote(idx, { name: e.target.value })}
+                            placeholder="Name"
+                          />
+                          <Input
+                            value={note.tag}
+                            onChange={(e) => updateCommunityNote(idx, { tag: e.target.value })}
+                            placeholder="Tag (e.g. Regular since 2021)"
+                          />
+                        </div>
+                        <div className="mt-3 flex justify-end">
+                          <Button variant="outline" type="button" onClick={() => removeCommunityNote(idx)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 mt-4 rounded-2xl border border-orange-100 bg-white/70 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-semibold text-slate-900">Community photos</div>
+                    <Button variant="outline" type="button" onClick={addCommunityShot}>
+                      Add photo
+                    </Button>
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    {(cafeForm.showcaseCommunityShots || []).length === 0 && (
+                      <div className="text-xs text-slate-500">Upload or paste image URLs for the gallery.</div>
+                    )}
+                    {(cafeForm.showcaseCommunityShots || []).map((shot, idx) => (
+                      <div key={`shot-${idx}`} className="rounded-2xl border border-slate-200 bg-white/90 p-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <Input
+                            value={shot}
+                            onChange={(e) => updateCommunityShot(idx, e.target.value)}
+                            placeholder="Image URL"
+                          />
+                          <div className="space-y-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) =>
+                                uploadCafeImage(
+                                  e.target.files?.[0],
+                                  (url) => updateCommunityShot(idx, url),
+                                  setShowcaseUploading
+                                )
+                              }
+                              className="text-sm text-slate-600"
+                            />
+                            {showcaseUploading && (
+                              <div className="text-xs text-slate-500">Uploading image...</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex justify-end">
+                          <Button variant="outline" type="button" onClick={() => removeCommunityShot(idx)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div className="md:col-span-2">
                   <Button className="w-full" type="submit" disabled={cafeLoading}>
                     {cafeLoading ? "Saving..." : "Save branding"}
@@ -1243,7 +1509,8 @@ export default function AdminMenuPage() {
             {tablesCafeId ? (
               <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {tables.map((table) => {
-                  const tableUrl = `${baseCustomerUrl}/${tablesCafeId}?table=${table.tableNumber}`;
+                  const tokenParam = table.tableToken ? `&t=${table.tableToken}` : "";
+                  const tableUrl = `${baseCustomerUrl}/${tablesCafeId}?table=${table.tableNumber}${tokenParam}`;
                   const qrUrl = qrApiBaseUrl
                     ? `${qrApiBaseUrl}/api/qr/table?cafeId=${encodeURIComponent(
                         tablesCafeId

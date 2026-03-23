@@ -14,6 +14,7 @@ import { playSoftError, playSuccess } from "../../../lib/sounds";
 import { getOrCreateVisitId } from "../../../lib/visitSession";
 import { setCssVarsFromCafe } from "../../../lib/theme";
 import { formatIndianMobileInput, normalizeIndianMobile } from "../../../lib/phoneIn";
+import { useTableGuard } from "../../../lib/useTableGuard";
 
 function cartKey(cafeId, tableNumber) {
   return `cart:${cafeId}:table:${tableNumber}`;
@@ -33,6 +34,7 @@ export default function CartPage() {
     const t = searchParams.get("table");
     return t ? parseInt(t, 10) : null;
   }, [searchParams]);
+  const tableToken = useMemo(() => searchParams.get("t") || "", [searchParams]);
 
   const [cart, setCart] = useState([]);
   const [cafeInfo, setCafeInfo] = useState(null);
@@ -45,6 +47,13 @@ export default function CartPage() {
   const [showDetails, setShowDetails] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [phoneError, setPhoneError] = useState("");
+  const tableGuard = useTableGuard({
+    cafeId,
+    tableNumber,
+    token: tableToken,
+    router,
+    redirectTo: (table, token) => `/${cafeId}/cart?table=${table}&t=${encodeURIComponent(token)}`,
+  });
 
   useEffect(() => {
     if (cafeInfo) setCssVarsFromCafe(cafeInfo);
@@ -196,6 +205,7 @@ export default function CartPage() {
           cafeId,
           tableNumber,
           visitId,
+          tableToken,
           customerName: nameToUse,
           phone: phoneDigits,
           customerLat,
@@ -207,7 +217,7 @@ export default function CartPage() {
       localStorage.removeItem(cartKey(cafeId, tableNumber));
       setCart([]);
       playSuccess();
-      router.replace(`/${cafeId}/order/${order._id}?table=${tableNumber}`);
+      router.replace(`/${cafeId}/order/${order._id}?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`);
     } catch (e) {
       playSoftError();
       setError(e.message || "Failed to place order");
@@ -216,12 +226,33 @@ export default function CartPage() {
     }
   };
 
+  if (tableGuard.status === "checking") {
+    return (
+      <CustomerShell bottomInsetClass="pb-36">
+        <div className="mx-auto w-full max-w-md px-4 pt-10">
+          <div className="text-center text-sm text-slate-600">Validating table link…</div>
+        </div>
+      </CustomerShell>
+    );
+  }
+
+  if (tableGuard.status === "error") {
+    return (
+      <CustomerShell bottomInsetClass="pb-36">
+        <div className="mx-auto w-full max-w-md px-4 pt-16 text-center">
+          <div className="text-lg font-semibold text-slate-900">Invalid table link</div>
+          <div className="mt-2 text-sm text-slate-600">{tableGuard.error}</div>
+        </div>
+      </CustomerShell>
+    );
+  }
+
   return (
     <CustomerShell bottomInsetClass="pb-36">
     <main className="min-h-screen">
       <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
-          <Button variant="outline" className="h-9 w-9 shrink-0 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}`)}>
+          <Button variant="outline" className="h-9 w-9 shrink-0 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}>
             <ArrowLeft size={18} className="text-slate-900" />
           </Button>
           <div className="min-w-0 flex-1 text-center">
@@ -251,7 +282,7 @@ export default function CartPage() {
             </div>
             <div className="mt-3 text-base font-semibold text-slate-900">Your cart is empty</div>
             <div className="mt-1 text-xs text-slate-500">Add a few favorites to get started.</div>
-            <Button className="mt-4 w-full rounded-full" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}`)}>
+            <Button className="mt-4 w-full rounded-full" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}>
               Browse Menu
             </Button>
           </div>
@@ -363,7 +394,7 @@ export default function CartPage() {
         </div>
       )}
 
-      <CustomerBottomNav cafeId={cafeId} />
+      <CustomerBottomNav cafeId={cafeId} tableNumber={tableNumber} tableToken={tableToken} />
     </main>
     </CustomerShell>
   );

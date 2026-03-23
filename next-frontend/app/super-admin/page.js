@@ -77,6 +77,20 @@ export default function SuperAdminPage() {
     return { totalCafes, totalTables };
   }, [cafes]);
 
+  const openCustomerUrl = async (cafeId) => {
+    try {
+      const data = await apiFetch(
+        `/api/qr/token?cafeId=${encodeURIComponent(cafeId)}&tableNumber=1`
+      );
+      const token = data?.token;
+      if (!token) throw new Error("Missing table token");
+      const url = `${baseCustomerUrl}/${cafeId}?table=1&t=${encodeURIComponent(token)}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError(e.message || "Failed to open customer URL");
+    }
+  };
+
   const load = async () => {
     setLoading(true);
     setError("");
@@ -541,9 +555,13 @@ export default function SuperAdminPage() {
                         </div>
                         <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
                           <span>Tables: {cafe.numberOfTables || 0}</span>
-                          <a className="text-orange-600 font-semibold" href={`${baseCustomerUrl}/${cafe._id}?table=1`}>
+                          <button
+                            type="button"
+                            className="text-orange-600 font-semibold"
+                            onClick={() => openCustomerUrl(cafe._id)}
+                          >
                             Open customer URL
-                          </a>
+                          </button>
                         </div>
 
                         <div className="mt-4 flex flex-wrap gap-2">

@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { AppShell } from "../components/AppShell";
 import { ShowcaseMenu } from "../components/coffee-culture/ShowcaseMenu";
 import { useMounted } from "../lib/useMounted";
+import { apiFetch, getApiBaseUrl } from "../lib/api";
+import { getShowcaseCafeId } from "../lib/showcaseCafe";
 import {
   Bean,
   Coffee,
@@ -138,6 +140,49 @@ export default function Home() {
   const reducedMotion = useReducedMotion();
   const mounted = useMounted();
   const motionOn = mounted && !reducedMotion;
+  const [highlightItems, setHighlightItems] = useState(signatureSips);
+  const [communityReviewNotes, setCommunityReviewNotes] = useState(communityNotes);
+  const [communityReviewShots, setCommunityReviewShots] = useState(communityShots);
+
+  useEffect(() => {
+    const baseUrl = getApiBaseUrl();
+    const cafeId = getShowcaseCafeId();
+    if (!baseUrl || !cafeId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await apiFetch(`/api/cafe/${cafeId}`);
+        if (cancelled) return;
+        if (Array.isArray(data?.showcaseHighlights) && data.showcaseHighlights.length > 0) {
+          const mapped = data.showcaseHighlights.map((it) => ({
+            name: it?.name || "Signature",
+            note: it?.note || "",
+            tag: it?.tag || "Special",
+            price: typeof it?.price === "number" ? String(it.price) : String(Number(it?.price || 0)),
+            image: it?.image || "",
+          }));
+          setHighlightItems(mapped);
+        }
+        if (Array.isArray(data?.showcaseCommunityNotes) && data.showcaseCommunityNotes.length > 0) {
+          const mapped = data.showcaseCommunityNotes.map((it) => ({
+            quote: it?.quote || "",
+            name: it?.name || "",
+            tag: it?.tag || "",
+          }));
+          setCommunityReviewNotes(mapped);
+        }
+        if (Array.isArray(data?.showcaseCommunityShots) && data.showcaseCommunityShots.length > 0) {
+          const mapped = data.showcaseCommunityShots.filter(Boolean);
+          if (mapped.length) setCommunityReviewShots(mapped);
+        }
+      } catch {
+        // fallback to defaults
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <AppShell fullBleed className="coffee-culture-root relative overflow-hidden bg-[#faf7f2]">
@@ -361,7 +406,7 @@ export default function Home() {
               <div className="text-sm font-semibold text-stone-600">Swipe to explore -&gt;</div>
             </div>
             <div className="mt-10 flex gap-6 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory">
-              {signatureSips.map((item) => (
+              {highlightItems.map((item) => (
                 <div
                   key={item.name}
                   className="group relative min-w-[260px] snap-start overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-lg"
@@ -450,7 +495,7 @@ export default function Home() {
             </div>
             <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="grid gap-4 md:grid-cols-3">
-                {communityNotes.map((note) => (
+                {communityReviewNotes.map((note) => (
                   <div key={note.name} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-amber-700">
                       <Star className="h-4 w-4" aria-hidden />
@@ -466,7 +511,7 @@ export default function Home() {
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {communityShots.map((shot, index) => (
+                {communityReviewShots.map((shot, index) => (
                   <div key={`${shot}-${index}`} className="relative aspect-square overflow-hidden rounded-2xl border border-stone-200">
                     <Image src={shot} alt="Coffee Culture moment" fill className="object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent to-stone-900/20" />

@@ -55,11 +55,17 @@ export function ShowcaseMenu() {
   }, [items]);
 
   const [cat, setCat] = useState("All");
+  const [showAll, setShowAll] = useState(false);
 
   const filtered = useMemo(() => {
     if (cat === "All") return items;
     return items.filter((it) => it.category === cat);
   }, [items, cat]);
+  const visibleItems = showAll ? filtered : filtered.slice(0, 3);
+
+  useEffect(() => {
+    setShowAll(false);
+  }, [cat, items.length]);
 
   useEffect(() => {
     if (!cafeId || !hasApi) {
@@ -186,7 +192,7 @@ export function ShowcaseMenu() {
             )}
 
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((it, i) => (
+              {visibleItems.map((it, i) => (
                 <motion.article
                   key={it._id}
                   {...motionProps(i)}
@@ -237,6 +243,18 @@ export function ShowcaseMenu() {
                 </motion.article>
               ))}
             </div>
+
+            {filtered.length > 3 && (
+              <div className="mt-6 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setShowAll((prev) => !prev)}
+                  className="rounded-full border-2 border-stone-300 bg-white px-6 py-2 text-sm font-bold text-stone-800 shadow-sm transition hover:border-stone-400 hover:bg-stone-50"
+                >
+                  {showAll ? "Show less" : "Show more"}
+                </button>
+              </div>
+            )}
 
             {usedFallback && (
               <p className="mt-6 text-center text-xs text-stone-500">
