@@ -13,9 +13,10 @@ import {
   Coffee,
   Clock,
   Instagram,
+  Leaf,
   MapPin,
-  QrCode,
   Menu,
+  QrCode,
   Sparkles,
   Star,
   Wind,
@@ -97,6 +98,21 @@ const communityShots = [
   buildImage("samples/food/pot-mussels", "f_auto,q_auto,c_fill,w_640,h_640"),
   buildImage("samples/food/dessert", "f_auto,q_auto,c_fill,w_640,h_640"),
   buildImage("samples/food/pancakes", "f_auto,q_auto,c_fill,w_640,h_640"),
+];
+
+const nonSmokingGallery = [
+  {
+    src: "/non-smoking1.jpeg",
+    alt: "Coffee Culture non-smoking area seating",
+  },
+  {
+    src: "/non-smoking-2.jpeg",
+    alt: "Coffee Culture non-smoking area interior",
+  },
+  {
+    src: "/non-smoking3.jpeg",
+    alt: "Coffee Culture non-smoking area lounge",
+  },
 ];
 
 export default function Home() {
@@ -343,6 +359,47 @@ export default function Home() {
                 </div>
               </div>
             </motion.div>
+          </div>
+        </section>
+
+        <section className="border-y border-stone-200/60 bg-white/70 py-20">
+          <div className="mx-auto max-w-6xl px-6">
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/80 bg-emerald-50 px-4 py-2 text-xs font-bold uppercase tracking-widest text-emerald-900">
+                  <Leaf className="h-3.5 w-3.5" aria-hidden />
+                  Non-smoking area
+                </div>
+                <h2 className="mt-4 font-display text-3xl font-bold text-stone-900 sm:text-4xl">
+                  Fresh air, calmer conversations
+                </h2>
+                <p className="mt-3 max-w-2xl text-stone-600">
+                  A dedicated non-smoking zone designed for slow coffee, relaxed meetups, and a cleaner cafe experience.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {nonSmokingGallery.map((image, index) => (
+                <motion.div
+                  key={image.src}
+                  initial={motionOn ? { opacity: 0, y: 18 } : false}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ delay: index * 0.08 }}
+                  className="group overflow-hidden rounded-[2rem] border border-stone-200 bg-[#faf7f2] p-3 shadow-sm"
+                >
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-[1.5rem]">
+                    <Image
+                      src={image.src}
+                      alt={image.alt}
+                      fill
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                    />
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </section>
 
