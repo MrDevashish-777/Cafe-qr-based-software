@@ -4,10 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import {
-  ArrowLeft,
   Leaf,
   Plus,
-  ShoppingCart,
   Star,
   Search,
   MapPin,
@@ -50,6 +48,7 @@ export default function MenuPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cart, setCart] = useState([]);
+  const [cartHydrated, setCartHydrated] = useState(false);
   const [cafe, setCafe] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -66,7 +65,11 @@ export default function MenuPage() {
   });
 
   useEffect(() => {
-    if (!cafeId || !tableNumber) return;
+    if (!cafeId || !Number.isFinite(tableNumber)) {
+      setCart([]);
+      setCartHydrated(false);
+      return;
+    }
     try {
       const raw = localStorage.getItem(cartKey(cafeId, tableNumber));
       const parsed = raw ? JSON.parse(raw) : [];
@@ -74,17 +77,19 @@ export default function MenuPage() {
     } catch {
       setCart([]);
     }
+    setCartHydrated(true);
   }, [cafeId, tableNumber]);
 
   const persistCart = (nextCart) => {
-    if (!cafeId || !tableNumber) return;
+    if (!cafeId || !Number.isFinite(tableNumber)) return;
     localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(nextCart));
   };
 
   useEffect(() => {
-    if (!cafeId || !tableNumber) return;
+    if (!cartHydrated) return;
+    if (!cafeId || !Number.isFinite(tableNumber)) return;
     localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(cart));
-  }, [cart, cafeId, tableNumber]);
+  }, [cartHydrated, cart, cafeId, tableNumber]);
 
   useEffect(() => {
     let cancelled = false;
@@ -155,6 +160,7 @@ export default function MenuPage() {
   }, [cafeId]);
 
   const add = (item) => {
+    if (!cartHydrated) return;
     playAddToCart();
     setCart((prev) => {
       const found = prev.find((x) => x._id === item._id);
@@ -167,6 +173,7 @@ export default function MenuPage() {
   };
 
   const remove = (item) => {
+    if (!cartHydrated) return;
     setCart((prev) => {
       const next = prev
         .map((x) => (x._id === item._id ? { ...x, qty: x.qty - 1 } : x))
@@ -254,7 +261,7 @@ export default function MenuPage() {
       ) : (
         <main className="min-h-screen">
       <div className="sticky top-0 z-20 border-b border-orange-100/50 bg-white/90 shadow-sm shadow-orange-100/30 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-4 py-3">
           <div className="min-w-0 flex-1 px-2">
             <div className="flex items-center justify-between">
               <div>
@@ -271,24 +278,12 @@ export default function MenuPage() {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <SoundControl />
-            <Button
-              variant="outline"
-              className="relative h-10 w-10 rounded-full p-0 border-2 border-slate-400 bg-white shadow-md hover:bg-white ring-1 ring-slate-200"
-              onClick={openCart}
-            >
-              <ShoppingCart size={18} strokeWidth={2.2} className="text-slate-900" />
-              {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                  {cartCount}
-                </span>
-              )}
-            </Button>
+            <SoundControl showVibrate={false} />
           </div>
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-md px-4 pt-3">
+      <div className="mx-auto w-full max-w-7xl px-4 pt-3">
         <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/80 shadow-lg">
           <div
             className="relative h-40 w-full bg-slate-100"
@@ -519,7 +514,7 @@ export default function MenuPage() {
               </div>
             ) : (
               <motion.div
-                className="space-y-4"
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
                 variants={listContainerVariants}
                 initial="hidden"
                 animate="show"
@@ -531,7 +526,7 @@ export default function MenuPage() {
                 const isNonVeg = it.type === "non-veg";
                 return (
                   <motion.div key={it._id} variants={listItemVariants} transition={{ duration: 0.22 }}>
-                  <Card className="overflow-hidden rounded-3xl border border-slate-100 shadow-sm">
+                  <Card className="flex h-full overflow-hidden rounded-[28px] border border-slate-100 shadow-sm">
                     <CardContent className="p-0">
                       <div className="relative">
                         {it.image ? (
@@ -562,19 +557,22 @@ export default function MenuPage() {
                           )}
                         </div>
                       </div>
-                      <div className="p-4">
+                      <div className="flex h-full flex-col p-4">
                         <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-base font-semibold text-slate-900">{it.name}</div>
-                            <div className="mt-1 text-xs text-slate-500">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[15px] font-semibold text-slate-900 sm:text-base">{it.name}</div>
+                            <div className="mt-1 line-clamp-3 text-xs text-slate-500 sm:text-sm">
                               {it.description || "Fresh, handmade, and served warm."}
                             </div>
                           </div>
-                          <div className="text-sm font-bold text-slate-900">INR {Number(it.price || 0).toFixed(0)}</div>
+                          <div className="shrink-0 rounded-full bg-amber-50 px-3 py-1 text-sm font-bold text-orange-700">
+                            INR {Number(it.price || 0).toFixed(0)}
+                          </div>
                         </div>
 
-                        <div className="mt-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <div className="mt-auto pt-3">
+                          <div className="flex items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                             <span className="rounded-full bg-slate-100 px-2 py-0.5">{it.category || "Menu"}</span>
                             {available ? (
                               <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">Available</span>
@@ -583,11 +581,11 @@ export default function MenuPage() {
                             )}
                           </div>
                           {!inCart ? (
-                            <Button onClick={() => add(it)} className="h-9 rounded-full px-4 text-xs" disabled={!available}>
+                            <Button onClick={() => add(it)} className="h-8 shrink-0 rounded-full px-3.5 text-xs" disabled={!available}>
                               <Plus size={16} className="text-white" /> Add
                             </Button>
                           ) : (
-                            <div className="flex items-center gap-2">
+                            <div className="flex shrink-0 items-center gap-2">
                               <Button variant="outline" onClick={() => remove(it)} className="h-8 w-8 rounded-full p-0 text-lg font-bold">
                                 -
                               </Button>
@@ -597,6 +595,7 @@ export default function MenuPage() {
                               </Button>
                             </div>
                           )}
+                          </div>
                         </div>
                       </div>
                     </CardContent>

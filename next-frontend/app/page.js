@@ -399,20 +399,20 @@ export default function Home() {
               </div>
               <div className="text-sm font-semibold text-stone-600">Swipe to explore -&gt;</div>
             </div>
-            <div className="mt-10 flex gap-6 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory">
+            <div className="mt-10 flex gap-5 overflow-x-auto pb-4 no-scrollbar snap-x snap-mandatory">
               {highlightItems.map((item) => (
                 <div
                   key={item.name}
-                  className="group relative min-w-[260px] snap-start overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-lg"
+                  className="group relative w-[220px] min-w-[220px] snap-start overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-lg sm:w-[230px] sm:min-w-[230px]"
                 >
-                  <div className="relative h-64 w-full">
+                  <div className="relative h-56 w-full">
                     <Image src={item.image} alt={item.name} fill className="object-cover transition duration-500 group-hover:scale-105" />
                   </div>
                   <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-amber-800">
                     {item.tag}
                   </div>
-                  <div className="p-5">
-                    <div className="flex items-center justify-between">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between gap-3">
                       <h3 className="font-display text-lg font-bold text-stone-900">{item.name}</h3>
                       <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">INR {item.price}</span>
                     </div>
@@ -443,9 +443,9 @@ export default function Home() {
               </div>
             </div>
             <div className="mt-10 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:auto-rows-fr md:grid-cols-3">
                 {communityReviewNotes.map((note) => (
-                  <div key={note.name} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+                  <div key={note.name} className="flex h-full flex-col rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 text-amber-700">
                       <Star className="h-4 w-4 fill-amber-500 text-amber-500" aria-hidden />
                       <Star className="h-4 w-4 fill-amber-500 text-amber-500" aria-hidden />
@@ -454,7 +454,7 @@ export default function Home() {
                       <Star className="h-4 w-4 fill-amber-500 text-amber-500" aria-hidden />
                     </div>
                     <p className="mt-3 text-sm leading-snug text-stone-700">"{note.quote}"</p>
-                    <div className="mt-3 text-xs font-semibold uppercase tracking-widest text-stone-400">{note.name}</div>
+                    <div className="mt-auto pt-4 text-xs font-semibold uppercase tracking-widest text-stone-400">{note.name}</div>
                     <div className="text-xs text-stone-500">{note.tag}</div>
                   </div>
                 ))}
