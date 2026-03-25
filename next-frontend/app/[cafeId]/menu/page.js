@@ -6,8 +6,8 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
   Leaf,
+  Minus,
   Plus,
-  ShoppingCart,
   Star,
   Search,
   MapPin,
@@ -79,11 +79,17 @@ export default function MenuPage() {
   const persistCart = (nextCart) => {
     if (!cafeId || !tableNumber) return;
     localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(nextCart));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("qrdine-cart-updated"));
+    }
   };
 
   useEffect(() => {
     if (!cafeId || !tableNumber) return;
     localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(cart));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("qrdine-cart-updated"));
+    }
   }, [cart, cafeId, tableNumber]);
 
   useEffect(() => {
@@ -272,18 +278,6 @@ export default function MenuPage() {
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <SoundControl />
-            <Button
-              variant="outline"
-              className="relative h-10 w-10 rounded-full p-0 border-2 border-slate-400 bg-white shadow-md hover:bg-white ring-1 ring-slate-200"
-              onClick={openCart}
-            >
-              <ShoppingCart size={18} strokeWidth={2.2} className="text-slate-900" />
-              {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
-                  {cartCount}
-                </span>
-              )}
-            </Button>
           </div>
         </div>
       </div>
@@ -417,25 +411,25 @@ export default function MenuPage() {
                 return (
                   <div
                     key={it._id}
-                    className="min-w-[200px] max-w-[220px] shrink-0 rounded-2xl border border-white/80 bg-white p-3 shadow-md"
+                    className="min-w-[220px] max-w-[260px] shrink-0 overflow-hidden rounded-3xl border border-white/80 bg-white p-0 shadow-md"
                   >
-                    <div className="flex gap-3">
-                      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                    <div className="relative">
+                      <div className="h-44 w-full overflow-hidden bg-slate-100">
                         {it.image ? (
-                          <img src={it.image} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
+                          <img src={it.image} alt="" className="h-44 w-full object-cover" loading="lazy" decoding="async" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-lg font-bold text-slate-300">
                             {it.name?.[0] || "?"}
                           </div>
                         )}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="line-clamp-2 text-base font-semibold leading-tight text-slate-900">{it.name}</div>
-                        <div className="mt-1 text-[11px] text-slate-500">Ordered {totalQty}x total</div>
-                        <div className="mt-1 text-sm font-bold text-slate-900">INR {Number(it.price || 0).toFixed(0)}</div>
-                      </div>
                     </div>
-                    <div className="mt-3">
+                    <div className="p-4">
+                      <div className="line-clamp-2 text-base font-semibold leading-tight text-slate-900">{it.name}</div>
+                      <div className="mt-1 text-[11px] text-slate-500">Ordered {totalQty}x total</div>
+                      <div className="mt-1 text-sm font-bold text-slate-900">INR {Number(it.price || 0).toFixed(0)}</div>
+                    </div>
+                    <div className="px-4 pb-4">
                       {!inCart ? (
                         <Button
                           size="lg"
@@ -537,76 +531,94 @@ export default function MenuPage() {
                 const isNonVeg = it.type === "non-veg";
                 return (
                   <motion.div key={it._id} variants={listItemVariants} transition={{ duration: 0.22 }}>
-                  <Card className="overflow-hidden rounded-3xl border border-slate-100 shadow-sm">
-                    <CardContent className="p-0">
-                      <div className="relative">
-                        {it.image ? (
-                          <img src={it.image} alt={it.name} className="h-44 w-full object-cover" loading="lazy" decoding="async" />
-                        ) : (
-                          <div className="h-44 w-full bg-gradient-to-br from-orange-100 to-amber-100" />
-                        )}
-                        {!available && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/55 text-xs font-semibold uppercase tracking-widest text-white">
-                            Sold out
-                          </div>
-                        )}
-                        <div className="absolute left-3 top-3 flex gap-2">
-                          {it.isSpecial && (
-                            <span className="rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-orange-700 shadow">
-                              Chef pick
-                            </span>
+                    <Card className="overflow-hidden rounded-[2rem] border border-orange-100/80 bg-white/95 shadow-[0_12px_30px_-22px_rgba(251,146,60,0.38)]">
+                      <CardContent className="p-0">
+                        <div className="relative">
+                          {it.image ? (
+                            <img
+                              src={it.image}
+                              alt={it.name}
+                              className="h-44 w-full object-cover"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          ) : (
+                            <div className="h-44 w-full bg-gradient-to-br from-orange-100 via-amber-50 to-orange-200" />
                           )}
-                          {isVeg && (
-                            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                              Veg
-                            </span>
-                          )}
-                          {isNonVeg && (
-                            <span className="rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-semibold text-rose-700">
-                              Non-veg
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="text-base font-semibold text-slate-900">{it.name}</div>
-                            <div className="mt-1 text-xs text-slate-500">
-                              {it.description || "Fresh, handmade, and served warm."}
+                          {!available && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-slate-900/55 text-xs font-semibold uppercase tracking-widest text-white">
+                              Sold out
                             </div>
-                          </div>
-                          <div className="text-sm font-bold text-slate-900">INR {Number(it.price || 0).toFixed(0)}</div>
-                        </div>
-
-                        <div className="mt-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5">{it.category || "Menu"}</span>
-                            {available ? (
-                              <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">Available</span>
-                            ) : (
-                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-600">Unavailable</span>
+                          )}
+                          <div className="absolute left-4 top-4 flex gap-2">
+                            {isVeg && (
+                              <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-emerald-700 shadow">
+                                Veg
+                              </span>
+                            )}
+                            {isNonVeg && (
+                              <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-rose-700 shadow">
+                                Non-veg
+                              </span>
+                            )}
+                            {it.isSpecial && (
+                              <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-orange-700 shadow">
+                                Chef pick
+                              </span>
                             )}
                           </div>
-                          {!inCart ? (
-                            <Button onClick={() => add(it)} className="h-9 rounded-full px-4 text-xs" disabled={!available}>
-                              <Plus size={16} className="text-white" /> Add
-                            </Button>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <Button variant="outline" onClick={() => remove(it)} className="h-8 w-8 rounded-full p-0 text-lg font-bold">
-                                -
-                              </Button>
-                              <div className="min-w-6 text-center text-sm font-semibold">{inCart.qty}</div>
-                              <Button variant="outline" onClick={() => add(it)} className="h-8 w-8 rounded-full p-0 text-lg font-bold">
-                                +
-                              </Button>
-                            </div>
-                          )}
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-base font-semibold text-slate-900">{it.name}</div>
+                              <div className="mt-1 text-xs text-slate-500">
+                                {it.description || "Fresh, handmade, and served warm."}
+                              </div>
+                            </div>
+                            <div className="text-sm font-bold text-slate-900">INR {Number(it.price || 0).toFixed(0)}</div>
+                          </div>
+
+                          <div className="mt-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5">{it.category || "Menu"}</span>
+                              {available ? (
+                                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">Available</span>
+                              ) : (
+                                <span className="rounded-full bg-slate-200 px-2 py-0.5 text-slate-600">Unavailable</span>
+                              )}
+                            </div>
+                            {!inCart ? (
+                              <Button
+                                onClick={() => add(it)}
+                                className="h-9 rounded-full bg-gradient-to-r from-orange-500 via-orange-400 to-amber-400 px-4 text-xs font-bold shadow-[0_12px_24px_-14px_rgba(249,115,22,0.68)]"
+                                disabled={!available}
+                              >
+                                <Plus size={16} className="text-white" /> Add
+                              </Button>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  onClick={() => remove(it)}
+                                  className="h-8 w-8 rounded-full border-2 border-slate-400 bg-white p-0 text-lg font-bold text-slate-900 shadow-sm hover:bg-slate-100"
+                                >
+                                  <Minus size={16} />
+                                </Button>
+                                <div className="min-w-6 text-center text-sm font-semibold">{inCart.qty}</div>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => add(it)}
+                                  className="h-8 w-8 rounded-full border-2 border-slate-400 bg-white p-0 text-lg font-bold text-slate-900 shadow-sm hover:bg-slate-100"
+                                >
+                                  <Plus size={16} />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </motion.div>
                 );
               })}

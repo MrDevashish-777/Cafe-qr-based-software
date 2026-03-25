@@ -47,6 +47,7 @@ export default function AdminMenuPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [itemSearch, setItemSearch] = useState("");
 
   const [adminCafeId, setAdminCafeId] = useState("");
 
@@ -154,6 +155,16 @@ export default function AdminMenuPage() {
     const categories = new Set(items.map((i) => i.category)).size;
     return { total, available, categories };
   }, [items]);
+
+  const visibleItems = useMemo(() => {
+    const q = itemSearch.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((it) =>
+      [it.name, it.category, it.description, it.type]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(q))
+    );
+  }, [items, itemSearch]);
 
   const [baseCustomerUrl, setBaseCustomerUrl] = useState("");
   const [qrApiBaseUrl, setQrApiBaseUrl] = useState("");
@@ -2074,8 +2085,20 @@ export default function AdminMenuPage() {
           </Card>
 
           <div className="space-y-4">
-            <h2 className="text-xl font-extrabold">Items</h2>
-            {items.map((it) => {
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-xl font-extrabold">Items</h2>
+              <div className="w-full max-w-sm">
+                <Input
+                  value={itemSearch}
+                  onChange={(e) => setItemSearch(e.target.value)}
+                  placeholder="Search menu items"
+                />
+              </div>
+            </div>
+            <div className="text-xs text-slate-500">
+              Showing {visibleItems.length} of {items.length} items
+            </div>
+            {visibleItems.map((it) => {
               const editing = editingId === it._id;
               return (
                 <Card key={it._id} className="border border-orange-100 shadow-lg">

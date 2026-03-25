@@ -159,10 +159,9 @@ export default function OrderStatusPage() {
 
   return (
     <CustomerShell bottomInsetClass="pb-36">
-    <main className="min-h-screen">
-      <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
-<<<<<<< HEAD
+      <main className="min-h-screen">
+        <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
           <Button
             variant="outline"
             className="h-9 w-9 shrink-0 rounded-full p-0"
@@ -170,21 +169,6 @@ export default function OrderStatusPage() {
           >
             <ArrowLeft size={18} className="text-slate-900" />
           </Button>
-=======
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white shadow ring-2 ring-white">
-            {cafeInfo?.logoUrl ? (
-              <img
-                src={cafeInfo.logoUrl}
-                alt={cafeInfo?.name || "Cafe"}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <div className="h-full w-full bg-gradient-to-br from-orange-200 to-amber-200" />
-            )}
-          </div>
->>>>>>> 7a72458 (Smoking area upload added in the admin dashboard)
           <div className="min-w-0 flex-1 text-center">
             <div className="text-xs text-slate-500">Table {tableNumber || "?"}</div>
             <div className="text-sm font-semibold text-slate-900">Order Tracker</div>
@@ -204,8 +188,8 @@ export default function OrderStatusPage() {
               Refresh
             </Button>
           </div>
+          </div>
         </div>
-      </div>
 
       <div className="mx-auto w-full max-w-md px-4 pt-2">
         <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">

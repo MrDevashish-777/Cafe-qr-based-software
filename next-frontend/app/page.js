@@ -19,6 +19,7 @@ import {
   QrCode,
   Sparkles,
   Star,
+  Wind,
 } from "lucide-react";
 
 const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;

@@ -7,6 +7,7 @@ import { ShoppingCart, UtensilsCrossed, ClipboardList } from "lucide-react";
 export default function CustomerBottomNav({ cafeId, tableNumber, tableToken }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [cartCount, setCartCount] = useState(0);
   const [table, setTable] = useState(() =>
     tableNumber !== undefined && tableNumber !== null && tableNumber !== "" ? String(tableNumber) : ""
   );
@@ -20,6 +21,36 @@ export default function CustomerBottomNav({ cafeId, tableNumber, tableToken }) {
     const next = searchParams.get("table");
     if (next !== null && next !== undefined) setTable(next);
   }, [searchParams, tableNumber]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !cafeId || !table) {
+      setCartCount(0);
+      return;
+    }
+
+    const loadCartCount = () => {
+      try {
+        const raw = window.localStorage.getItem(`cart:${cafeId}:table:${table}`);
+        const parsed = raw ? JSON.parse(raw) : [];
+        const count = Array.isArray(parsed)
+          ? parsed.reduce((sum, item) => sum + Number(item?.qty || 0), 0)
+          : 0;
+        setCartCount(count);
+      } catch {
+        setCartCount(0);
+      }
+    };
+
+    loadCartCount();
+    window.addEventListener("storage", loadCartCount);
+    window.addEventListener("focus", loadCartCount);
+    window.addEventListener("qrdine-cart-updated", loadCartCount);
+    return () => {
+      window.removeEventListener("storage", loadCartCount);
+      window.removeEventListener("focus", loadCartCount);
+      window.removeEventListener("qrdine-cart-updated", loadCartCount);
+    };
+  }, [cafeId, table]);
 
   const links = [
     { key: "menu", label: "Menu", href: `/${cafeId}/menu?table=${table || ""}${tokenParam}`, icon: UtensilsCrossed },
@@ -44,8 +75,13 @@ export default function CustomerBottomNav({ cafeId, tableNumber, tableToken }) {
                   active ? "bg-gradient-to-r from-orange-500 via-amber-400 to-amber-300 text-white shadow shadow-orange-500/30" : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                <span className={`flex h-8 w-8 items-center justify-center rounded-full ${active ? "bg-white/20" : "bg-slate-100"}`}>
+                <span className={`relative flex h-8 w-8 items-center justify-center rounded-full ${active ? "bg-white/20" : "bg-slate-100"}`}>
                   <Icon size={16} />
+                  {item.key === "cart" && cartCount > 0 && (
+                    <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold leading-none text-white shadow">
+                      {cartCount}
+                    </span>
+                  )}
                 </span>
                 <span>{item.label}</span>
               </a>

@@ -21,6 +21,13 @@ function cartKey(cafeId, tableNumber) {
   return `cart:${cafeId}:table:${tableNumber}`;
 }
 
+function writeCart(cafeId, tableNumber, cart) {
+  localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(cart));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("qrdine-cart-updated"));
+  }
+}
+
 function sessionKey(cafeId, tableNumber) {
   return `customer:${cafeId}:table:${tableNumber}`;
 }
@@ -131,7 +138,7 @@ export default function CartPage() {
   useEffect(() => {
     if (!cafeId || !tableNumber) return;
     if (!hydrated) return;
-    localStorage.setItem(cartKey(cafeId, tableNumber), JSON.stringify(cart));
+    writeCart(cafeId, tableNumber, cart);
   }, [cart, cafeId, tableNumber, hydrated]);
 
   const subtotal = cart.reduce((sum, x) => sum + x.price * x.qty, 0);
@@ -220,7 +227,7 @@ export default function CartPage() {
         }),
       });
 
-      localStorage.removeItem(cartKey(cafeId, tableNumber));
+      writeCart(cafeId, tableNumber, []);
       setCart([]);
       playSuccess();
       router.replace(`/${cafeId}/order/${order._id}?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`);
@@ -259,48 +266,32 @@ export default function CartPage() {
 
   return (
     <CustomerShell bottomInsetClass="pb-44">
-    <main className="min-h-screen">
-      <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
-<<<<<<< HEAD
-          <Button variant="outline" className="h-9 w-9 shrink-0 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}>
-            <ArrowLeft size={18} className="text-slate-900" />
-          </Button>
-=======
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white shadow ring-2 ring-white">
-            {cafeInfo?.logoUrl ? (
-              <img
-                src={cafeInfo.logoUrl}
-                alt={cafeInfo?.name || "Cafe"}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <div className="h-full w-full bg-gradient-to-br from-orange-200 to-amber-200" />
-            )}
-          </div>
->>>>>>> 7a72458 (Smoking area upload added in the admin dashboard)
-          <div className="min-w-0 flex-1 text-center">
-            <div className="text-xs text-slate-500">Table {tableNumber || "?"}</div>
-            <div className="text-sm font-semibold text-slate-900">Review your order</div>
-            <div className="mt-2 flex items-center justify-center">
-              <div className="h-10 w-10 rounded-full bg-white shadow ring-2 ring-white overflow-hidden">
-                {cafeInfo?.logoUrl ? (
-                  <img src={cafeInfo.logoUrl} alt={cafeInfo?.name || "Cafe"} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-orange-200 to-amber-200" />
-                )}
-              </div>
+      <main className="min-h-screen">
+        <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3 px-4 py-4">
+            <button
+              type="button"
+              className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white shadow-sm"
+              onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}
+              aria-label="Back to menu"
+            >
+              {cafeInfo?.logoUrl ? (
+                <img src={cafeInfo.logoUrl} alt={cafeInfo?.name || "Cafe"} className="h-full w-full object-cover" />
+              ) : (
+                <ArrowLeft size={18} className="text-slate-900" />
+              )}
+            </button>
+            <div className="min-w-0 flex-1 text-center">
+              <div className="text-xs font-medium text-slate-400">Table {tableNumber || "?"}</div>
+              <div className="mt-1 text-[1.05rem] font-semibold text-slate-900">Review your order</div>
+            </div>
+            <div className="flex shrink-0 justify-end">
+              <SoundControl />
             </div>
           </div>
-          <div className="flex shrink-0 justify-end">
-            <SoundControl />
-          </div>
         </div>
-      </div>
 
-      <div className="mx-auto w-full max-w-md px-4 pt-2">
+      <div className="mx-auto w-full max-w-md px-4 pt-3">
         {cart.length === 0 ? (
           <div className="mt-8 rounded-3xl border border-white/70 bg-white/80 p-6 text-center text-sm text-slate-600 shadow-sm">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
@@ -317,8 +308,8 @@ export default function CartPage() {
             {cart.map((x) => (
               <motion.div key={x._id} {...itemMotion}>
                 <Card className="rounded-3xl border border-white/70 bg-white/85 shadow-sm">
-                  <CardContent>
-                    <div className="flex items-center justify-between gap-4">
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
                         <div className="text-sm font-semibold text-slate-900">{x.name}</div>
                         <div className="text-xs text-slate-500">INR {Number(x.price || 0).toFixed(0)}</div>
@@ -327,19 +318,19 @@ export default function CartPage() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-8 w-8 rounded-full p-0"
+                          className="h-8 w-8 rounded-full border-2 border-slate-300 bg-white p-0 text-slate-900 shadow-none"
                           onClick={() => updateQty(x._id, -1)}
                         >
-                          <Minus size={16} />
+                          <span className="text-base font-bold leading-none text-slate-900">-</span>
                         </Button>
                         <div className="min-w-8 text-center text-sm font-semibold">{x.qty}</div>
                         <Button
                           type="button"
                           variant="outline"
-                          className="h-8 w-8 rounded-full p-0"
+                          className="h-8 w-8 rounded-full border-2 border-slate-300 bg-white p-0 text-slate-900 shadow-none"
                           onClick={() => updateQty(x._id, 1)}
                         >
-                          <Plus size={16} />
+                          <span className="text-base font-bold leading-none text-slate-900">+</span>
                         </Button>
                       </div>
                     </div>
@@ -349,13 +340,13 @@ export default function CartPage() {
             ))}
 
             <Card className="rounded-3xl border border-white/70 bg-white/85 shadow-sm">
-              <CardContent>
+              <CardContent className="p-5">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-xs uppercase tracking-widest text-slate-400">Step 2</div>
                     <div className="text-sm font-semibold text-slate-700">Bill summary</div>
                   </div>
-                  <div className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
+                  <div className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">
                     <Sparkles size={12} /> Fast checkout
                   </div>
                 </div>
@@ -376,12 +367,22 @@ export default function CartPage() {
 
                 <div className="mt-4">
                   <label className="text-xs font-semibold text-slate-600">Order notes (optional)</label>
-                  <Textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Less spicy, no onion..." />
+                  <Textarea
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Less spicy, no onion..."
+                    className="p-3 text-sm"
+                  />
                 </div>
 
                 {error && <div className="mt-3 text-sm font-semibold text-red-700">{error}</div>}
 
-                <Button className="mt-4 w-full rounded-full" onClick={placeOrder} disabled={!canPlace}>
+                <Button
+                  className="mt-4 w-full rounded-full"
+                  onClick={placeOrder}
+                  disabled={!canPlace}
+                >
                   {placing ? "Placing..." : "Place Order"}
                 </Button>
                 <div className="mt-2 text-xs text-slate-500">

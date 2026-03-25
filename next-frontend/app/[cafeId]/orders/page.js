@@ -160,61 +160,33 @@ export default function OrdersPage() {
 
   return (
     <CustomerShell bottomInsetClass="pb-36">
-<<<<<<< HEAD
-    <main className="min-h-screen">
-      <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
-          <Button variant="outline" className="h-9 w-9 shrink-0 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}>
-            <ArrowLeft size={18} className="text-slate-900" />
-          </Button>
-          <div className="min-w-0 flex-1 text-center">
-            <div className="text-xs text-slate-500">Table {tableNumber || "?"}</div>
-            <div className="text-sm font-semibold text-slate-900">Your Orders</div>
-            <div className="mt-2 flex items-center justify-center">
-              <div className="h-10 w-10 rounded-full bg-white shadow ring-2 ring-white overflow-hidden">
-                {cafeInfo?.logoUrl ? (
-                  <img src={cafeInfo.logoUrl} alt={cafeInfo?.name || "Cafe"} className="h-full w-full object-cover" />
-                ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-orange-200 to-amber-200" />
-                )}
-              </div>
-=======
       <main className="min-h-screen">
         <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
           <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
-            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white shadow ring-2 ring-white">
-              {cafeInfo?.logoUrl ? (
-                <img
-                  src={cafeInfo.logoUrl}
-                  alt={cafeInfo?.name || "Cafe"}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <div className="h-full w-full bg-gradient-to-br from-orange-200 to-amber-200" />
-              )}
-            </div>
+            <Button variant="outline" className="h-9 w-9 shrink-0 rounded-full p-0" onClick={() => router.push(`/${cafeId}/menu?table=${tableNumber}&t=${encodeURIComponent(tableToken)}`)}>
+              <ArrowLeft size={18} className="text-slate-900" />
+            </Button>
             <div className="min-w-0 flex-1 text-center">
               <div className="text-xs text-slate-500">Table {tableNumber || "?"}</div>
               <div className="text-sm font-semibold text-slate-900">Your Orders</div>
+              <div className="mt-2 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-white shadow ring-2 ring-white overflow-hidden">
+                  {cafeInfo?.logoUrl ? (
+                    <img src={cafeInfo.logoUrl} alt={cafeInfo?.name || "Cafe"} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-orange-200 to-amber-200" />
+                  )}
+                </div>
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
-              <SoundControl showVibrate={false} />
+              <SoundControl />
               <Button variant="outline" className="h-9 rounded-full px-3 text-xs" onClick={load}>
                 Refresh
               </Button>
->>>>>>> 7a72458 (Smoking area upload added in the admin dashboard)
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <SoundControl />
-            <Button variant="outline" className="h-9 rounded-full px-3 text-xs" onClick={load}>
-              Refresh
-            </Button>
-          </div>
         </div>
-      </div>
 
       <div className="mx-auto w-full max-w-md px-4 pt-2">
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
