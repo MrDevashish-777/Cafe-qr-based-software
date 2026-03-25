@@ -179,6 +179,7 @@ export default function AdminMenuPage() {
     showcaseHighlights: [],
     showcaseCommunityNotes: [],
     showcaseCommunityShots: [],
+    showcaseNonSmokingShots: [],
   });
   const [showcaseUploading, setShowcaseUploading] = useState(false);
   const [cafeLoading, setCafeLoading] = useState(false);
@@ -429,6 +430,9 @@ export default function AdminMenuPage() {
         showcaseCommunityShots: Array.isArray(data?.showcaseCommunityShots)
           ? data.showcaseCommunityShots.map((s) => s || "")
           : [],
+        showcaseNonSmokingShots: Array.isArray(data?.showcaseNonSmokingShots)
+          ? data.showcaseNonSmokingShots.map((s) => s || "")
+          : [],
       });
     } catch (e) {
       setCafeError(e.message || "Failed to load cafe");
@@ -495,6 +499,9 @@ export default function AdminMenuPage() {
         showcaseCommunityShots: (cafeForm.showcaseCommunityShots || [])
           .filter((s) => typeof s === "string")
           .map((s) => s),
+        showcaseNonSmokingShots: (cafeForm.showcaseNonSmokingShots || [])
+          .filter((s) => typeof s === "string")
+          .map((s) => s),
       };
       if (role === "super_admin") body.cafeId = cafeIdForAdmin;
       const updated = await apiFetch("/api/admin/cafe", {
@@ -503,7 +510,13 @@ export default function AdminMenuPage() {
         body: JSON.stringify(body),
       });
       setCafeInfo(updated);
-      setCafeSuccess("Cafe updated");
+      setCafeSuccess(`Cafe updated. Non-smoking images: ${Array.isArray(updated?.showcaseNonSmokingShots) ? updated.showcaseNonSmokingShots.length : 0}`);
+      setCafeForm((prev) => ({
+        ...prev,
+        showcaseNonSmokingShots: Array.isArray(updated?.showcaseNonSmokingShots)
+          ? updated.showcaseNonSmokingShots.map((s) => s || "")
+          : prev.showcaseNonSmokingShots,
+      }));
     } catch (e) {
       setCafeError(e.message || "Failed to update cafe");
     } finally {
@@ -607,6 +620,28 @@ export default function AdminMenuPage() {
     setCafeForm((prev) => ({
       ...prev,
       showcaseCommunityShots: (prev.showcaseCommunityShots || []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const updateNonSmokingShot = (idx, value) => {
+    setCafeForm((prev) => {
+      const next = [...(prev.showcaseNonSmokingShots || [])];
+      next[idx] = value;
+      return { ...prev, showcaseNonSmokingShots: next };
+    });
+  };
+
+  const addNonSmokingShot = () => {
+    setCafeForm((prev) => ({
+      ...prev,
+      showcaseNonSmokingShots: [...(prev.showcaseNonSmokingShots || []), ""],
+    }));
+  };
+
+  const removeNonSmokingShot = (idx) => {
+    setCafeForm((prev) => ({
+      ...prev,
+      showcaseNonSmokingShots: (prev.showcaseNonSmokingShots || []).filter((_, i) => i !== idx),
     }));
   };
 
@@ -1194,7 +1229,13 @@ export default function AdminMenuPage() {
                   {cafeForm.upiQrUrl ? (
                     <div className="mt-2 rounded-2xl border border-orange-100 bg-white p-3">
                       <div className="text-xs font-semibold text-slate-500">Preview</div>
-                      <img src={cafeForm.upiQrUrl} alt="UPI QR" className="mt-2 h-40 w-40 rounded-xl object-cover" />
+                      <img
+                        src={cafeForm.upiQrUrl}
+                        alt="UPI QR"
+                        className="mt-2 h-40 w-40 rounded-xl object-cover"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </div>
                   ) : null}
                 </div>
@@ -1413,6 +1454,68 @@ export default function AdminMenuPage() {
                     ))}
                   </div>
                 </div>
+
+                <div className="md:col-span-2 mt-4 rounded-2xl border border-emerald-100 bg-white/70 p-4 shadow-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-slate-900">Non-smoking area</div>
+                      <div className="text-xs text-slate-500 mt-0.5">Upload photos to show guests the non-smoking zone.</div>
+                    </div>
+                    <Button variant="outline" type="button" onClick={addNonSmokingShot}>
+                      Add photo
+                    </Button>
+                  </div>
+                  <div className="mt-3 space-y-3">
+                    {(cafeForm.showcaseNonSmokingShots || []).length === 0 && (
+                      <div className="text-xs text-slate-500">Upload or paste image URLs for the non-smoking gallery.</div>
+                    )}
+                    {(cafeForm.showcaseNonSmokingShots || []).map((shot, idx) => (
+                      <div key={`non-smoking-shot-${idx}`} className="rounded-2xl border border-slate-200 bg-white/90 p-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <Input
+                            value={shot}
+                            onChange={(e) => updateNonSmokingShot(idx, e.target.value)}
+                            placeholder="Image URL"
+                          />
+                          <div className="min-h-[72px]">
+                            {shot ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={shot}
+                                alt="Non-smoking area preview"
+                                className="h-16 w-full rounded-lg object-cover border border-slate-200 bg-white"
+                              />
+                            ) : (
+                              <div className="h-16 w-full rounded-lg bg-slate-50 border border-slate-200" />
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) =>
+                                uploadCafeImage(
+                                  e.target.files?.[0],
+                                  (url) => updateNonSmokingShot(idx, url),
+                                  setShowcaseUploading
+                                )
+                              }
+                              className="text-sm text-slate-600"
+                            />
+                            {showcaseUploading && (
+                              <div className="text-xs text-slate-500">Uploading image...</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex justify-end">
+                          <Button variant="outline" type="button" onClick={() => removeNonSmokingShot(idx)}>
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div className="md:col-span-2">
                   <Button className="w-full" type="submit" disabled={cafeLoading}>
                     {cafeLoading ? "Saving..." : "Save branding"}
@@ -1574,7 +1677,13 @@ export default function AdminMenuPage() {
                         <span>{table.status || "free"}</span>
                       </div>
                       <div className="mt-3 flex items-center justify-center">
-                        <img src={qrUrl} alt={`QR for table ${table.tableNumber}`} className="h-40 w-40 rounded-xl border border-orange-100" />
+                        <img
+                          src={qrUrl}
+                          alt={`QR for table ${table.tableNumber}`}
+                          className="h-40 w-40 rounded-xl border border-orange-100 object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </div>
                       <div className="mt-3 text-xs text-gray-500 break-all">{tableUrl}</div>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -1777,7 +1886,13 @@ export default function AdminMenuPage() {
                               <td className="py-2 pr-3">{row.type || "-"}</td>
                               <td className="py-2 pr-3">
                                 {row.image ? (
-                                  <img src={row.image} alt={row.name || "Preview"} className="h-10 w-10 rounded-lg object-cover" />
+                                  <img
+                                    src={row.image}
+                                    alt={row.name || "Preview"}
+                                    className="h-10 w-10 rounded-lg object-cover"
+                                    loading="lazy"
+                                    decoding="async"
+                                  />
                                 ) : (
                                   "-"
                                 )}
@@ -1929,7 +2044,13 @@ export default function AdminMenuPage() {
                         <div className="mt-3 font-extrabold text-slate-900">INR {Number(it.price || 0).toFixed(2)}</div>
                         {it.image && (
                           <div className="mt-3">
-                            <img src={it.image} alt={it.name} className="h-28 w-full rounded-xl object-cover border border-orange-100" />
+                            <img
+                              src={it.image}
+                              alt={it.name}
+                              className="h-28 w-full rounded-xl object-cover border border-orange-100"
+                              loading="lazy"
+                              decoding="async"
+                            />
                           </div>
                         )}
                       </>

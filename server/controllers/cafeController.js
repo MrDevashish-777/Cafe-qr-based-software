@@ -25,7 +25,7 @@ exports.getCafeById = async (req, res) => {
 
 exports.createCafe = async (req, res) => {
   try {
-    const { name, address, numberOfTables, logoUrl, brandImageUrl, taxPercent, discountType, discountValue, discountPercent, showcaseHighlights, showcaseCommunityNotes, showcaseCommunityShots } = req.body;
+    const { name, address, numberOfTables, logoUrl, brandImageUrl, taxPercent, discountType, discountValue, discountPercent, showcaseHighlights, showcaseCommunityNotes, showcaseCommunityShots, showcaseNonSmokingShots } = req.body;
     if (!name) return res.status(400).json({ message: "name is required" });
 
     const cafe = await Cafe.create({
@@ -59,6 +59,9 @@ exports.createCafe = async (req, res) => {
         : undefined,
       showcaseCommunityShots: Array.isArray(showcaseCommunityShots)
         ? showcaseCommunityShots.filter((s) => typeof s === "string").map((s) => s)
+        : undefined,
+      showcaseNonSmokingShots: Array.isArray(showcaseNonSmokingShots)
+        ? showcaseNonSmokingShots.filter((s) => typeof s === "string").map((s) => s)
         : undefined,
     });
 
@@ -95,7 +98,7 @@ exports.resetTableSessions = async (req, res) => {
 
 exports.updateCafe = async (req, res) => {
   try {
-    const { name, address, numberOfTables, logoUrl, brandImageUrl, isActive, taxPercent, discountType, discountValue, discountPercent, showcaseHighlights, showcaseCommunityNotes, showcaseCommunityShots } = req.body;
+    const { name, address, numberOfTables, logoUrl, brandImageUrl, isActive, taxPercent, discountType, discountValue, discountPercent, showcaseHighlights, showcaseCommunityNotes, showcaseCommunityShots, showcaseNonSmokingShots } = req.body;
     const updates = {};
     if (typeof name === "string") updates.name = name;
     if (typeof address === "string") updates.address = address;
@@ -137,6 +140,9 @@ exports.updateCafe = async (req, res) => {
     }
     if (Array.isArray(showcaseCommunityShots)) {
       updates.showcaseCommunityShots = showcaseCommunityShots.filter((s) => typeof s === "string").map((s) => s);
+    }
+    if (Array.isArray(showcaseNonSmokingShots)) {
+      updates.showcaseNonSmokingShots = showcaseNonSmokingShots.filter((s) => typeof s === "string").map((s) => s);
     }
 
     const cafe = await Cafe.findByIdAndUpdate(req.params.id, updates, { new: true });

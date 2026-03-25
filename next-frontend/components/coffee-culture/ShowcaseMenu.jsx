@@ -201,7 +201,13 @@ export function ShowcaseMenu() {
                   <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-amber-100 to-stone-200">
                     {it.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={it.image} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                      <img
+                        src={it.image}
+                        alt=""
+                        className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <Coffee className="h-16 w-16 text-amber-800/30" />

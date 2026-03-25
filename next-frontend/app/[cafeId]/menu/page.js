@@ -303,7 +303,13 @@ export default function MenuPage() {
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 overflow-hidden rounded-2xl border border-white/30 bg-white/20">
                   {cafe?.logoUrl ? (
-                    <img src={cafe.logoUrl} alt={cafe?.name || "Cafe"} className="h-full w-full object-cover" />
+                    <img
+                      src={cafe.logoUrl}
+                      alt={cafe?.name || "Cafe"}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-xl font-bold text-white">Q</div>
                   )}
@@ -416,7 +422,7 @@ export default function MenuPage() {
                     <div className="flex gap-3">
                       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                         {it.image ? (
-                          <img src={it.image} alt="" className="h-full w-full object-cover" />
+                          <img src={it.image} alt="" className="h-full w-full object-cover" loading="lazy" decoding="async" />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center text-lg font-bold text-slate-300">
                             {it.name?.[0] || "?"}
@@ -535,7 +541,7 @@ export default function MenuPage() {
                     <CardContent className="p-0">
                       <div className="relative">
                         {it.image ? (
-                          <img src={it.image} alt={it.name} className="h-44 w-full object-cover" />
+                          <img src={it.image} alt={it.name} className="h-44 w-full object-cover" loading="lazy" decoding="async" />
                         ) : (
                           <div className="h-44 w-full bg-gradient-to-br from-orange-100 to-amber-100" />
                         )}

@@ -68,6 +68,11 @@ exports.updateCafe = async (req, res) => {
         .filter((s) => typeof s === "string")
         .map((s) => s);
     }
+    if (Array.isArray(req.body.showcaseNonSmokingShots)) {
+      updates.showcaseNonSmokingShots = req.body.showcaseNonSmokingShots
+        .filter((s) => typeof s === "string")
+        .map((s) => s);
+    }
 
     const cafe = await Cafe.findByIdAndUpdate(cafeId, updates, { new: true });
     if (!cafe) return res.status(404).json({ message: "Cafe not found" });

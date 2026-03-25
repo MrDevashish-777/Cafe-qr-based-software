@@ -160,6 +160,7 @@ export default function OrdersPage() {
 
   return (
     <CustomerShell bottomInsetClass="pb-36">
+<<<<<<< HEAD
     <main className="min-h-screen">
       <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
@@ -177,6 +178,33 @@ export default function OrdersPage() {
                   <div className="h-full w-full bg-gradient-to-br from-orange-200 to-amber-200" />
                 )}
               </div>
+=======
+      <main className="min-h-screen">
+        <div className="sticky top-0 z-20 border-b border-white/60 bg-white/85 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-md items-center justify-between gap-2 px-4 py-3">
+            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white shadow ring-2 ring-white">
+              {cafeInfo?.logoUrl ? (
+                <img
+                  src={cafeInfo.logoUrl}
+                  alt={cafeInfo?.name || "Cafe"}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-orange-200 to-amber-200" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1 text-center">
+              <div className="text-xs text-slate-500">Table {tableNumber || "?"}</div>
+              <div className="text-sm font-semibold text-slate-900">Your Orders</div>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              <SoundControl showVibrate={false} />
+              <Button variant="outline" className="h-9 rounded-full px-3 text-xs" onClick={load}>
+                Refresh
+              </Button>
+>>>>>>> 7a72458 (Smoking area upload added in the admin dashboard)
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1">

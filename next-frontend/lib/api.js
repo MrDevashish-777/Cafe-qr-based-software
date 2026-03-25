@@ -12,11 +12,17 @@ export async function apiFetch(path, options = {}) {
   }
 
   const url = path.startsWith("http") ? path : `${baseUrl}${path}`;
+
+  const method = String(options.method || "GET").toUpperCase();
+  const hasBody = typeof options.body !== "undefined" && options.body !== null;
+  const isFormDataBody = typeof FormData !== "undefined" && hasBody && options.body instanceof FormData;
+  const shouldSetJsonContentType = hasBody && !isFormDataBody && method !== "GET" && method !== "HEAD";
+
   const res = await fetch(url, {
     ...options,
     credentials: options.credentials ?? "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(shouldSetJsonContentType ? { "Content-Type": "application/json" } : {}),
       ...(options.headers || {}),
     },
   });

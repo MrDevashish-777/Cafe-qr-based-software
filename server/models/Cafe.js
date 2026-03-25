@@ -38,6 +38,8 @@ const cafeSchema = new mongoose.Schema(
       },
     ],
     showcaseCommunityShots: [{ type: String, default: "", trim: true }],
+    /** Marketing site: non-smoking area gallery */
+    showcaseNonSmokingShots: [{ type: String, default: "", trim: true }],
   },
   { timestamps: true }
 );

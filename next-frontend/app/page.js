@@ -122,6 +122,7 @@ export default function Home() {
   const [highlightItems, setHighlightItems] = useState(signatureSips);
   const [communityReviewNotes, setCommunityReviewNotes] = useState(communityNotes);
   const [communityReviewShots, setCommunityReviewShots] = useState(communityShots);
+  const [nonSmokingShots, setNonSmokingShots] = useState([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -154,6 +155,10 @@ export default function Home() {
         if (Array.isArray(data?.showcaseCommunityShots) && data.showcaseCommunityShots.length > 0) {
           const mapped = data.showcaseCommunityShots.filter(Boolean);
           if (mapped.length) setCommunityReviewShots(mapped);
+        }
+        if (Array.isArray(data?.showcaseNonSmokingShots) && data.showcaseNonSmokingShots.length > 0) {
+          const mapped = data.showcaseNonSmokingShots.filter(Boolean);
+          if (mapped.length) setNonSmokingShots(mapped);
         }
       } catch {
         // fallback to defaults
@@ -527,6 +532,34 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {nonSmokingShots.length > 0 && (
+          <section id="non-smoking" className="scroll-mt-24 py-20">
+            <div className="mx-auto max-w-6xl px-6">
+              <div className="flex flex-wrap items-end justify-between gap-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/70 bg-emerald-50/70 px-4 py-2 text-xs font-bold uppercase tracking-widest text-emerald-900">
+                    <Wind className="h-3.5 w-3.5" aria-hidden />
+                    Non-smoking area
+                  </div>
+                  <h2 className="mt-4 font-display text-3xl font-bold text-stone-900 sm:text-4xl">A quieter, cleaner zone</h2>
+                  <p className="mt-3 max-w-xl text-stone-600">
+                    Prefer a smoke-free seat? Here&apos;s what our non-smoking area looks like.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
+                {nonSmokingShots.map((shot, index) => (
+                  <div key={`${shot}-${index}`} className="relative aspect-square overflow-hidden rounded-2xl border border-stone-200 bg-white">
+                    <Image src={shot} alt="Non-smoking area" fill className="object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-stone-900/15" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <section id="visit" className="scroll-mt-24 border-t border-stone-200/60 bg-stone-900 py-20 text-amber-50">
           <div className="mx-auto max-w-6xl px-6">

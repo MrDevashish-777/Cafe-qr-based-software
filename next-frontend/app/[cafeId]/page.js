@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
@@ -85,6 +85,8 @@ export default function CafeEntryPage() {
                 src={cafe.logoUrl}
                 alt={cafe?.name || "Cafe"}
                 className="h-20 w-20 rounded-2xl object-cover border border-white/30"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div className="text-3xl font-extrabold">Q</div>
