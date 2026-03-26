@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api";
 import { authHeaders } from "../../lib/auth";
 import { useClientAuth } from "../../lib/useClientAuth";
@@ -13,6 +13,7 @@ import { formatDatetimeLocal, startOfLocalDay } from "../../lib/datetimeLocal";
 
 export default function StaffOrderHistory({ title, backHref, roleGate, dashboardLabel = "Back to dashboard" }) {
   const { token, user, ready: authReady } = useClientAuth();
+  const autoLoadedRef = useRef("");
   const [cafeIdOverride, setCafeIdOverride] = useState("");
   const cafeId = useMemo(() => cafeIdOverride || user?.cafeId || "", [cafeIdOverride, user?.cafeId]);
 
@@ -62,6 +63,15 @@ export default function StaffOrderHistory({ title, backHref, roleGate, dashboard
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!authReady || !cafeId || !from || !to) return;
+    const key = `${cafeId}:${from}:${to}`;
+    if (autoLoadedRef.current === key) return;
+    autoLoadedRef.current = key;
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authReady, cafeId, from, to]);
 
   if (!authReady) {
     return (
@@ -154,6 +164,12 @@ export default function StaffOrderHistory({ title, backHref, roleGate, dashboard
                   Payment: {String(o.paymentMode).toUpperCase()}
                 </div>
               )}
+              {o.notes ? (
+                <div className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Order note</div>
+                  <div className="mt-1 break-words">{o.notes}</div>
+                </div>
+              ) : null}
               <div className="mt-2 flex justify-between text-sm font-semibold text-slate-900">
                 <span>Total</span>
                 <span>INR {Number(o.totalAmount || 0).toFixed(2)}</span>

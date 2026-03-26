@@ -1,7 +1,9 @@
 {
+  "/kitchen/history/page": "app/kitchen/history/page.js",
   "/[cafeId]/page": "app/[cafeId]/page.js",
+  "/[cafeId]/cart/page": "app/[cafeId]/cart/page.js",
   "/[cafeId]/menu/page": "app/[cafeId]/menu/page.js",
+  "/kitchen/page": "app/kitchen/page.js",
   "/admin/menu/page": "app/admin/menu/page.js",
-  "/[cafeId]/orders/page": "app/[cafeId]/orders/page.js",
-  "/[cafeId]/cart/page": "app/[cafeId]/cart/page.js"
+  "/[cafeId]/order/[orderId]/page": "app/[cafeId]/order/[orderId]/page.js"
 }

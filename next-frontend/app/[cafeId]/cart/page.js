@@ -224,6 +224,7 @@ export default function CartPage() {
           customerLat,
           customerLng,
           paymentMode,
+          notes: notes.trim(),
           items: cart.map((x) => ({ name: x.name, price: x.price, qty: x.qty, menuItemId: x._id })),
         }),
       });

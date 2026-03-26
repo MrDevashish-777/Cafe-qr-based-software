@@ -1,6 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  BarChart,
+  Bar,
+} from "recharts";
 import { apiFetch, getApiBaseUrl } from "../../../lib/api";
 import { isOrderInLocalToday, ordersTodayQueryString } from "../../../lib/staffOrderRange";
 import Link from "next/link";
@@ -38,6 +49,17 @@ function getUploadedImageUrl(data) {
     data?.image ||
     ""
   );
+}
+
+function formatCurrency(value) {
+  return `INR ${Number(value || 0).toFixed(0)}`;
+}
+
+function formatDayLabel(value) {
+  if (!value) return "";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
 export default function AdminMenuPage() {
@@ -228,6 +250,24 @@ export default function AdminMenuPage() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState("");
   const [ordersSocket, setOrdersSocket] = useState("disconnected");
+  const [analytics, setAnalytics] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState("");
+  const [analyticsDays, setAnalyticsDays] = useState("30");
+
+  const analyticsTotals = useMemo(() => {
+    const byDay = Array.isArray(analytics?.byDay) ? analytics.byDay : [];
+    const totalOrders = byDay.reduce((sum, day) => sum + Number(day?.orders || 0), 0);
+    const totalRevenue = byDay.reduce((sum, day) => sum + Number(day?.revenue || 0), 0);
+    const openOrders = Array.isArray(analytics?.statusBreakdown)
+      ? analytics.statusBreakdown.reduce((sum, row) => {
+          const status = String(row?._id || "").toLowerCase();
+          if (status === "paid" || status === "cancelled") return sum;
+          return sum + Number(row?.count || 0);
+        }, 0)
+      : 0;
+    return { totalOrders, totalRevenue, openOrders };
+  }, [analytics]);
 
   const tablesCafeId = useMemo(
     () => (role === "super_admin" ? adminCafeId : user?.cafeId || ""),
@@ -264,6 +304,69 @@ export default function AdminMenuPage() {
       setError(e.message || "Failed to load menu");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    if (!requireLogin(false)) return;
+    if (!cafeIdForAdmin) {
+      setAnalytics(null);
+      return;
+    }
+    setAnalyticsLoading(true);
+    setAnalyticsError("");
+    try {
+      const days = Math.min(90, Math.max(7, Number(analyticsDays || 30)));
+      const from = new Date();
+      from.setDate(from.getDate() - days);
+      from.setHours(0, 0, 0, 0);
+
+      const qs = new URLSearchParams({
+        from: from.toISOString(),
+        to: new Date().toISOString(),
+      });
+
+      const orders = await apiFetch(`/api/orders/${encodeURIComponent(cafeIdForAdmin)}?${qs.toString()}`, {
+        headers: { ...authHeaders() },
+      });
+
+      const byDayMap = new Map();
+      const statusMap = new Map();
+      let paidRevenueTotal = 0;
+
+      for (const order of Array.isArray(orders) ? orders : []) {
+        const createdAt = order?.createdAt ? new Date(order.createdAt) : null;
+        if (!createdAt || Number.isNaN(createdAt.getTime())) continue;
+
+        const dayKey = createdAt.toISOString().slice(0, 10);
+        const revenue = Number(order?.totalAmount || 0);
+        const status = String(order?.status || "unknown");
+
+        const currentDay = byDayMap.get(dayKey) || { _id: dayKey, revenue: 0, orders: 0 };
+        currentDay.revenue += revenue;
+        currentDay.orders += 1;
+        byDayMap.set(dayKey, currentDay);
+
+        statusMap.set(status, (statusMap.get(status) || 0) + 1);
+
+        if (status.toLowerCase() === "paid") {
+          paidRevenueTotal += revenue;
+        }
+      }
+
+      const byDay = Array.from(byDayMap.values()).sort((a, b) => a._id.localeCompare(b._id));
+      const statusBreakdown = Array.from(statusMap.entries()).map(([_id, count]) => ({ _id, count }));
+
+      setAnalytics({
+        byDay,
+        statusBreakdown,
+        paidRevenueTotal,
+        rangeDays: days,
+      });
+    } catch (e) {
+      setAnalyticsError(e.message || "Failed to load analytics");
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -1004,6 +1107,15 @@ export default function AdminMenuPage() {
     if (cafeIdForAdmin) loadCafe();
   }, [cafeIdForAdmin]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (cafeIdForAdmin) {
+      loadAnalytics();
+      return;
+    }
+    setAnalytics(null);
+  }, [cafeIdForAdmin, analyticsDays]);
+
   useEffect(() => {
     if (staffCafeId) loadStaff();
   }, [staffCafeId]);
@@ -1200,26 +1312,26 @@ export default function AdminMenuPage() {
       }}
       badge={
         <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-orange-700 shadow">
-          Admin Menu Console
+          Admin Dashboard
         </span>
       }
-      title="Menu management"
-      subtitle="Create, update, and publish dishes across your cafe."
+      title="Cafe admin dashboard"
+      subtitle="Track revenue, orders, staff, tables, and menu updates from one simpler workspace."
       actions={
         <>
           <SoundControl />
           <div className="flex flex-wrap gap-3">
             <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center shadow-sm">
+              <div className="text-xl font-bold text-slate-900">{formatCurrency(analytics?.paidRevenueTotal)}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Paid Revenue</div>
+            </div>
+            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center shadow-sm">
+              <div className="text-xl font-bold text-slate-900">{analyticsTotals.totalOrders}</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Orders</div>
+            </div>
+            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center shadow-sm">
               <div className="text-xl font-bold text-slate-900">{stats.total}</div>
-              <div className="text-xs uppercase tracking-wide text-slate-500">Items</div>
-            </div>
-            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center shadow-sm">
-              <div className="text-xl font-bold text-slate-900">{stats.available}</div>
-              <div className="text-xs uppercase tracking-wide text-slate-500">Available</div>
-            </div>
-            <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center shadow-sm">
-              <div className="text-xl font-bold text-slate-900">{stats.categories}</div>
-              <div className="text-xs uppercase tracking-wide text-slate-500">Categories</div>
+              <div className="text-xs uppercase tracking-wide text-slate-500">Menu Items</div>
             </div>
           </div>
         </>
@@ -1238,6 +1350,152 @@ export default function AdminMenuPage() {
             </CardContent>
           </Card>
         )}
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+          <Card id="admin-overview" className="border border-orange-100 shadow-xl">
+            <CardContent>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="font-bold text-slate-900">Business overview</div>
+                  <div className="mt-1 text-sm text-slate-600">
+                    Revenue and order trends for the last {analytics?.rangeDays || Number(analyticsDays)} days.
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={analyticsDays}
+                    onChange={(e) => setAnalyticsDays(e.target.value)}
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900"
+                  >
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                  </select>
+                  <Button variant="outline" onClick={loadAnalytics} disabled={analyticsLoading || !cafeIdForAdmin}>
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+
+              {analyticsError && <div className="mt-3 text-red-700 font-semibold">{analyticsError}</div>}
+
+              {!cafeIdForAdmin ? (
+                <div className="mt-6 text-sm text-slate-600">Select a cafe to load revenue analytics.</div>
+              ) : analyticsLoading ? (
+                <div className="mt-6 text-sm text-slate-600">Loading analytics...</div>
+              ) : !analytics?.byDay?.length && !analytics?.statusBreakdown?.length ? (
+                <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
+                  No orders were found in this date range, so revenue and order charts are empty.
+                </div>
+              ) : (
+                <div className="mt-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                    <div className="rounded-2xl border border-orange-100 bg-white/90 p-4">
+                      <div className="text-xs uppercase tracking-wide text-slate-500">Paid revenue</div>
+                      <div className="mt-2 text-2xl font-extrabold text-slate-900">
+                        {formatCurrency(analytics?.paidRevenueTotal)}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-orange-100 bg-white/90 p-4">
+                      <div className="text-xs uppercase tracking-wide text-slate-500">Total revenue</div>
+                      <div className="mt-2 text-2xl font-extrabold text-slate-900">
+                        {formatCurrency(analyticsTotals.totalRevenue)}
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-orange-100 bg-white/90 p-4">
+                      <div className="text-xs uppercase tracking-wide text-slate-500">Orders</div>
+                      <div className="mt-2 text-2xl font-extrabold text-slate-900">{analyticsTotals.totalOrders}</div>
+                    </div>
+                    <div className="rounded-2xl border border-orange-100 bg-white/90 p-4">
+                      <div className="text-xs uppercase tracking-wide text-slate-500">Open orders</div>
+                      <div className="mt-2 text-2xl font-extrabold text-slate-900">{analyticsTotals.openOrders}</div>
+                    </div>
+                  </div>
+
+                  <div className="h-72 w-full rounded-2xl border border-slate-100 bg-white p-3">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={(analytics?.byDay || []).map((day) => ({ ...day, day: formatDayLabel(day._id) }))}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Line
+                          type="monotone"
+                          dataKey="revenue"
+                          stroke="#ea580c"
+                          strokeWidth={2}
+                          dot={false}
+                          name="Revenue"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="h-60 w-full rounded-2xl border border-slate-100 bg-white p-3">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={analytics?.statusBreakdown || []}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="_id" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} />
+                        <Tooltip />
+                        <Bar dataKey="count" fill="#0d9488" name="Orders" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border border-orange-100 shadow-xl">
+            <CardContent>
+              <div className="font-bold text-slate-900">Quick actions</div>
+              <div className="mt-1 text-sm text-slate-600">
+                Jump straight to the area you need instead of scanning the whole page.
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                <Link href="/admin/menu#admin-live-orders" className="rounded-2xl border border-orange-100 bg-white/90 px-4 py-3 font-semibold text-slate-900 transition hover:bg-orange-50">
+                  Live orders
+                </Link>
+                <Link href="/admin/menu#admin-menu-editor" className="rounded-2xl border border-orange-100 bg-white/90 px-4 py-3 font-semibold text-slate-900 transition hover:bg-orange-50">
+                  Menu items
+                </Link>
+                <Link href="/admin/menu#admin-tables" className="rounded-2xl border border-orange-100 bg-white/90 px-4 py-3 font-semibold text-slate-900 transition hover:bg-orange-50">
+                  Table QR codes
+                </Link>
+                <Link href="/admin/menu#admin-staff-create" className="rounded-2xl border border-orange-100 bg-white/90 px-4 py-3 font-semibold text-slate-900 transition hover:bg-orange-50">
+                  Staff accounts
+                </Link>
+                <Link href="/admin/menu#admin-branding" className="rounded-2xl border border-orange-100 bg-white/90 px-4 py-3 font-semibold text-slate-900 transition hover:bg-orange-50">
+                  Branding and settings
+                </Link>
+                <Link href="/admin/history" className="rounded-2xl border border-orange-100 bg-white/90 px-4 py-3 font-semibold text-slate-900 transition hover:bg-orange-50">
+                  Order history
+                </Link>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Tables</div>
+                  <div className="mt-1 text-xl font-extrabold text-slate-900">{tables.length}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Staff</div>
+                  <div className="mt-1 text-xl font-extrabold text-slate-900">{staffList.length}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Available items</div>
+                  <div className="mt-1 text-xl font-extrabold text-slate-900">{stats.available}</div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="text-xs uppercase tracking-wide text-slate-500">Live today</div>
+                  <div className="mt-1 text-xl font-extrabold text-slate-900">{orders.length}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card id="admin-branding" className="border border-orange-100 shadow-xl">
           <CardContent>

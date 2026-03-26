@@ -1,4 +1,6 @@
+const mongoose = require("mongoose");
 const Cafe = require("../models/Cafe");
+const Order = require("../models/Order");
 
 function getCafeIdFromRequest(req) {
   if (req.user?.role === "super_admin") {
@@ -38,6 +40,54 @@ exports.getNonSmokingImages = async (req, res) => {
 
     return res.json({
       showcaseNonSmokingShots: normalizeImageList(cafe.showcaseNonSmokingShots),
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Server error", error });
+  }
+};
+
+exports.getAnalytics = async (req, res) => {
+  try {
+    const cafeId = getCafeIdFromRequest(req);
+    if (!cafeId) return res.status(400).json({ message: "cafeId is required" });
+
+    const days = Math.min(90, Math.max(7, Number(req.query.days || 30)));
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    start.setHours(0, 0, 0, 0);
+
+    const match = {
+      cafeId: new mongoose.Types.ObjectId(cafeId),
+      createdAt: { $gte: start },
+    };
+
+    const byDay = await Order.aggregate([
+      { $match: match },
+      {
+        $group: {
+          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+          revenue: { $sum: "$totalAmount" },
+          orders: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const statusBreakdown = await Order.aggregate([
+      { $match: match },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]);
+
+    const paidRevenue = await Order.aggregate([
+      { $match: { ...match, status: "paid" } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+    ]);
+
+    return res.json({
+      byDay,
+      statusBreakdown,
+      paidRevenueTotal: paidRevenue[0]?.total || 0,
+      rangeDays: days,
     });
   } catch (error) {
     return res.status(500).json({ message: "Server error", error });

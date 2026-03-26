@@ -19,6 +19,7 @@ const orderSchema = new mongoose.Schema(
 
     customerName: { type: String, required: true, trim: true },
     phone: { type: String, required: true, trim: true },
+    notes: { type: String, trim: true, default: "" },
 
     items: { type: [orderItemSchema], default: [] },
 

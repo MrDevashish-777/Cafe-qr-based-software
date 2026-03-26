@@ -293,7 +293,13 @@ export default function WaiterPage() {
       actions={
         <>
           <SoundControl />
-          <div className="flex flex-wrap gap-3">
+        </>
+      }
+      contentClassName="mx-auto w-full max-w-6xl"
+    >
+      <div className="space-y-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="rounded-2xl border border-orange-100 bg-white/80 px-4 py-3 text-center shadow-sm">
               <div className="text-xl font-bold text-slate-900">{stats.total}</div>
               <div className="text-xs uppercase tracking-wide text-slate-500">Total</div>
@@ -307,143 +313,153 @@ export default function WaiterPage() {
               <div className="text-xs uppercase tracking-wide text-slate-500">Served</div>
             </div>
           </div>
-          <div className="text-xs text-slate-600 mt-2">
-            Paid orders move to History automatically.
+          <Button variant="outline" onClick={load} disabled={!cafeId || loading} className="min-w-[110px]">
+            Refresh
+          </Button>
+          <div className="min-w-0 text-sm text-slate-600">
+            Socket: <span className="font-semibold">{socketState}</span>
           </div>
-          <div className="text-xs text-slate-600 mt-1">Prepared = Ready</div>
-        </>
-      }
-    >
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Button variant="outline" onClick={load} disabled={!cafeId || loading}>
-          Refresh
-        </Button>
-        <div className="text-sm text-slate-600">
-          Socket: <span className="font-semibold">{socketState}</span>
+          <Link
+            href="/waiter/history"
+            className="inline-flex items-center rounded-full border border-orange-200 bg-white px-4 py-2 text-sm font-semibold text-orange-800 shadow-sm hover:bg-orange-50"
+          >
+            History
+          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-w-[140px] text-xs sm:text-sm"
+            onClick={() => requestNotificationPermission()}
+          >
+            Enable alerts
+          </Button>
         </div>
-        <Link
-          href="/waiter/history"
-          className="inline-flex items-center rounded-full border border-orange-200 bg-white px-4 py-2 text-sm font-semibold text-orange-800 shadow-sm hover:bg-orange-50"
-        >
-          History
-        </Link>
-        <Button type="button" variant="outline" className="text-xs" onClick={() => requestNotificationPermission()}>
-          Enable alerts
-        </Button>
-      </div>
 
-      {readyNotice && (
-        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow">
-          Order ready for Table {readyNotice.tableNumber}{" "}
-          {readyNotice.customerName ? `(${readyNotice.customerName})` : ""}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-600">
+          <span>Paid orders move to History automatically.</span>
+          <span>Prepared = Ready.</span>
         </div>
-      )}
 
-      {!user?.cafeId && (
-        <Card className="mb-6 border border-orange-100 shadow-xl">
-          <CardContent>
-            <div className="font-bold">Cafe scope</div>
-            <div className="mt-1 text-sm text-gray-600">Enter a cafeId to view orders.</div>
-            <div className="mt-3 flex gap-2">
-              <Input
-                value={cafeIdOverride}
-                onChange={(e) => setCafeIdOverride(e.target.value)}
-                placeholder="cafeId (ObjectId)"
-              />
-              <Button variant="outline" onClick={load} disabled={!cafeIdOverride || loading}>
-                Load
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+        {readyNotice && (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 shadow">
+            Order ready for Table {readyNotice.tableNumber}{" "}
+            {readyNotice.customerName ? `(${readyNotice.customerName})` : ""}
+          </div>
+        )}
 
-      {error && <div className="text-red-700 font-semibold">{error}</div>}
+        {!user?.cafeId && (
+          <Card className="border border-orange-100 shadow-xl">
+            <CardContent>
+              <div className="font-bold">Cafe scope</div>
+              <div className="mt-1 text-sm text-gray-600">Enter a cafeId to view orders.</div>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={cafeIdOverride}
+                  onChange={(e) => setCafeIdOverride(e.target.value)}
+                  placeholder="cafeId (ObjectId)"
+                />
+                <Button variant="outline" onClick={load} disabled={!cafeIdOverride || loading}>
+                  Load
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {orders.map((o) => (
-          <motion.div key={o._id} initial={motionInitial} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-            <Card className="border border-orange-100 shadow-lg">
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-extrabold text-slate-900">Table {o.tableNumber}</div>
-                    <div className="text-sm text-gray-600">
-                      {o.customerName} - {o.phone}
-                    </div>
-                  </div>
-                  <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold uppercase text-orange-700">
-                    {o.status}
-                  </div>
-                </div>
+        {error && <div className="text-red-700 font-semibold">{error}</div>}
 
-                <div className="mt-3 space-y-1 text-sm">
-                  {o.items.map((it, idx) => (
-                    <div key={idx} className="flex justify-between">
-                      <span>
-                        {it.name} x {it.qty}
-                      </span>
-                      <span>INR {(it.price * it.qty).toFixed(2)}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {o.paymentMode && (
-                  <div className="mt-2 text-xs font-semibold text-slate-600">
-                    Payment: {String(o.paymentMode).toUpperCase()}
-                  </div>
-                )}
-
-                {(() => {
-                  const lineSum = o.items.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 0), 0);
-                  const hasServerPricing = typeof o.subtotalAmount === "number" && typeof o.taxAmount === "number";
-                  const subtotal = hasServerPricing ? Number(o.subtotalAmount) : Number(o.totalAmount || lineSum);
-                  const discount = typeof o.discountAmount === "number" ? Number(o.discountAmount) : 0;
-                  const taxRate = Number(cafeInfo?.taxPercent || 0);
-                  const taxAmount = hasServerPricing ? Number(o.taxAmount) : subtotal * (taxRate / 100);
-                  const totalFinal = hasServerPricing ? Number(o.totalAmount || 0) : subtotal + taxAmount;
-                  return (
-                    <div className="mt-3 space-y-1 text-sm">
-                      <div className="flex justify-between text-slate-600">
-                        <span>Subtotal</span>
-                        <span>INR {subtotal.toFixed(2)}</span>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {orders.map((o) => (
+            <motion.div key={o._id} initial={motionInitial} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+              <Card className="border border-orange-100 shadow-lg">
+                <CardContent>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-extrabold text-slate-900">Table {o.tableNumber}</div>
+                      <div className="break-words text-sm text-gray-600">
+                        {o.customerName} - {o.phone}
                       </div>
-                      {discount > 0 && (
+                    </div>
+                    <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold uppercase text-orange-700">
+                      {o.status}
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2 text-sm">
+                    {o.items.map((it, idx) => (
+                      <div key={idx} className="flex items-start justify-between gap-3">
+                        <span className="min-w-0 break-words">
+                          {it.name} x {it.qty}
+                        </span>
+                        <span className="shrink-0">INR {(it.price * it.qty).toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {o.paymentMode && (
+                    <div className="mt-2 text-xs font-semibold text-slate-600">
+                      Payment: {String(o.paymentMode).toUpperCase()}
+                    </div>
+                  )}
+
+                  {o.notes ? (
+                    <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">Order note</div>
+                      <div className="mt-1 break-words">{o.notes}</div>
+                    </div>
+                  ) : null}
+
+                  {(() => {
+                    const lineSum = o.items.reduce((s, it) => s + Number(it.price || 0) * Number(it.qty || 0), 0);
+                    const hasServerPricing = typeof o.subtotalAmount === "number" && typeof o.taxAmount === "number";
+                    const subtotal = hasServerPricing ? Number(o.subtotalAmount) : Number(o.totalAmount || lineSum);
+                    const discount = typeof o.discountAmount === "number" ? Number(o.discountAmount) : 0;
+                    const taxRate = Number(cafeInfo?.taxPercent || 0);
+                    const taxAmount = hasServerPricing ? Number(o.taxAmount) : subtotal * (taxRate / 100);
+                    const totalFinal = hasServerPricing ? Number(o.totalAmount || 0) : subtotal + taxAmount;
+                    return (
+                      <div className="mt-3 space-y-1 text-sm">
                         <div className="flex justify-between text-slate-600">
-                          <span>Discount</span>
-                          <span>- INR {discount.toFixed(2)}</span>
+                          <span>Subtotal</span>
+                          <span>INR {subtotal.toFixed(2)}</span>
                         </div>
-                      )}
-                      <div className="flex justify-between text-slate-600">
-                        <span>Tax {!hasServerPricing && taxRate ? `(${taxRate}%)` : ""}</span>
-                        <span>INR {taxAmount.toFixed(2)}</span>
+                        {discount > 0 && (
+                          <div className="flex justify-between text-slate-600">
+                            <span>Discount</span>
+                            <span>- INR {discount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-slate-600">
+                          <span>Tax {!hasServerPricing && taxRate ? `(${taxRate}%)` : ""}</span>
+                          <span>INR {taxAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between font-extrabold text-slate-900">
+                          <span>Total</span>
+                          <span>INR {totalFinal.toFixed(2)}</span>
+                        </div>
                       </div>
-                      <div className="flex justify-between font-extrabold text-slate-900">
-                        <span>Total</span>
-                        <span>INR {totalFinal.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  );
-                })()}
+                    );
+                  })()}
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => setStatus(o._id, "served")} disabled={loading}>
-                    Served
-                  </Button>
-                  <Button variant="outline" onClick={() => setStatus(o._id, "paid")} disabled={loading}>
-                    Paid
-                  </Button>
-                  <Button variant="outline" onClick={() => downloadReceiptPdf(o)} disabled={loading}>
-                    Download PDF
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button variant="outline" onClick={() => setStatus(o._id, "served")} disabled={loading}>
+                      Served
+                    </Button>
+                    <Button variant="outline" onClick={() => setStatus(o._id, "paid")} disabled={loading}>
+                      Paid
+                    </Button>
+                    <Button variant="outline" onClick={() => downloadReceiptPdf(o)} disabled={loading}>
+                      Download PDF
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        {!loading && cafeId && orders.length === 0 && <div className="text-gray-700">No orders yet.</div>}
       </div>
-
-      {!loading && cafeId && orders.length === 0 && <div className="text-gray-700">No orders yet.</div>}
     </StaffShell>
   );
 }

@@ -28,7 +28,20 @@ export async function apiFetch(path, options = {}) {
   });
 
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  const contentType = res.headers.get("content-type") || "";
+  let data = null;
+
+  if (text) {
+    if (contentType.includes("application/json")) {
+      data = JSON.parse(text);
+    } else {
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { message: text.startsWith("<!DOCTYPE") || text.startsWith("<html") ? `Non-JSON response from ${url}` : text };
+      }
+    }
+  }
 
   if (!res.ok) {
     const message = data?.message || `Request failed (${res.status})`;

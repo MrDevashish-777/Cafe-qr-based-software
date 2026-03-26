@@ -55,8 +55,9 @@ export function StaffShell({
     navLinks.push({ href: "/waiter", label: "Waiter dashboard", icon: LayoutDashboard });
     navLinks.push({ href: staffNav.historyHref || "/waiter/history", label: "Order history", icon: History });
   } else if (staffNav?.variant === "admin") {
-    navLinks.push({ href: "/admin/menu", label: "Menu console", icon: UtensilsCrossed });
+    navLinks.push({ href: "/admin/menu", label: "Admin dashboard", icon: LayoutDashboard });
     navLinks.push({ href: "/admin/history", label: "Order history", icon: History });
+    navLinks.push({ href: "/admin/menu#admin-overview", label: "Revenue overview", icon: LayoutDashboard });
     navLinks.push({ href: "/admin/menu#admin-branding", label: "Branding & settings", icon: LayoutDashboard });
     navLinks.push({ href: "/admin/menu#admin-live-orders", label: "Live orders", icon: LayoutDashboard });
     navLinks.push({ href: "/admin/menu#admin-tables", label: "Table QR codes", icon: LayoutDashboard });
