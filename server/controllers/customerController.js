@@ -1,8 +1,13 @@
-const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const Customer = require("../models/Customer");
 const Order = require("../models/Order");
 const { normalizePhone } = require("../utils/phone");
+const {
+  CUSTOMER_COOKIE_NAME,
+  CUSTOMER_COOKIE_MAX_AGE_MS,
+  signCustomerToken,
+  verifyCustomerToken,
+} = require("../utils/customerSession");
 
 function customerSecret() {
   return process.env.CUSTOMER_JWT_SECRET || process.env.JWT_SECRET;
@@ -11,12 +16,11 @@ function customerSecret() {
 /** Top menu items this customer has ordered at a cafe (by phone match on past orders). */
 exports.getFavorites = async (req, res) => {
   try {
-    const token = req.cookies?.qrdine_customer;
+    const token = req.cookies?.[CUSTOMER_COOKIE_NAME];
     if (!token) return res.status(401).json({ message: "Not signed in" });
-    const secret = customerSecret();
-    if (!secret) return res.status(500).json({ message: "JWT secret not configured" });
-    const payload = jwt.verify(token, secret);
-    if (payload.aud !== "customer") return res.status(401).json({ message: "Invalid session" });
+    const verified = verifyCustomerToken({ req, token, secret: customerSecret() });
+    if (verified.status) return res.status(verified.status).json({ message: verified.message });
+    const { payload } = verified;
 
     const cafeId = req.query.cafeId;
     if (!cafeId || !mongoose.Types.ObjectId.isValid(cafeId)) {
@@ -25,6 +29,7 @@ exports.getFavorites = async (req, res) => {
 
     const customer = await Customer.findById(payload.sub).lean();
     if (!customer) return res.status(401).json({ message: "Customer not found" });
+    exports.signCustomerCookie(res, customer, req);
 
     const normalized = normalizePhone(customer.phone);
     if (!normalized) return res.json({ items: [] });
@@ -79,14 +84,14 @@ exports.getFavorites = async (req, res) => {
 
 exports.getMe = async (req, res) => {
   try {
-    const token = req.cookies?.qrdine_customer;
+    const token = req.cookies?.[CUSTOMER_COOKIE_NAME];
     if (!token) return res.status(401).json({ message: "Not signed in" });
-    const secret = customerSecret();
-    if (!secret) return res.status(500).json({ message: "JWT secret not configured" });
-    const payload = jwt.verify(token, secret);
-    if (payload.aud !== "customer") return res.status(401).json({ message: "Invalid session" });
+    const verified = verifyCustomerToken({ req, token, secret: customerSecret() });
+    if (verified.status) return res.status(verified.status).json({ message: verified.message });
+    const { payload } = verified;
     const customer = await Customer.findById(payload.sub).lean();
     if (!customer) return res.status(401).json({ message: "Customer not found" });
+    exports.signCustomerCookie(res, customer, req);
     return res.json({
       id: String(customer._id),
       name: customer.name,
@@ -99,19 +104,15 @@ exports.getMe = async (req, res) => {
   }
 };
 
-exports.signCustomerCookie = (res, customerDoc) => {
+exports.signCustomerCookie = (res, customerDoc, req) => {
   const secret = customerSecret();
-  if (!secret) return;
-  const token = jwt.sign(
-    { sub: String(customerDoc._id), aud: "customer" },
-    secret,
-    { expiresIn: "7d" }
-  );
-  res.cookie("qrdine_customer", token, {
+  const token = signCustomerToken({ customerId: customerDoc?._id, req, secret });
+  if (!token) return;
+  res.cookie(CUSTOMER_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    maxAge: CUSTOMER_COOKIE_MAX_AGE_MS,
     path: "/",
   });
 };

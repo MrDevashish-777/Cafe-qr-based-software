@@ -22,6 +22,7 @@ dotenv.config();
 connectDB();
 
 const app = express();
+app.set("trust proxy", 1);
 const envOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((o) => o.trim())

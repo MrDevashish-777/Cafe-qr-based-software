@@ -12,7 +12,7 @@ import { Card, CardContent } from "../../../components/ui/Card";
 import CustomerBottomNav from "../../../components/CustomerBottomNav";
 import { CustomerShell } from "../../../components/CustomerShell";
 import SoundControl from "../../../components/SoundControl";
-import { getOrCreateVisitId, rotateVisitId } from "../../../lib/visitSession";
+import { getOrCreateVisitId } from "../../../lib/visitSession";
 import { maybeNotifyBrowser, playCustomerStatus, requestNotificationPermission } from "../../../lib/sounds";
 import StaffAlertBanner from "../../../components/StaffAlertBanner";
 import { AppLoading } from "../../../components/AppLoading";
@@ -133,15 +133,6 @@ export default function OrdersPage() {
       socket.disconnect();
     };
   }, [cafeId, tableNumber, visitId, tableGuard.status]);
-
-  useEffect(() => {
-    if (!cafeId || !tableNumber || orders.length === 0) return;
-    const allClosed = orders.every((o) => ["paid", "rejected"].includes(o.status));
-    if (!allClosed) return;
-    const next = rotateVisitId(cafeId, Number(tableNumber));
-    if (next) setVisitId(next);
-    setOrders([]);
-  }, [orders, cafeId, tableNumber]);
 
   if (tableGuard.status === "checking") {
     return (

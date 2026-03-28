@@ -168,7 +168,7 @@ exports.createOrder = async (req, res) => {
         tableNumber,
         cafeId,
       });
-      if (cust) signCustomerCookie(res, cust);
+      if (cust) signCustomerCookie(res, cust, req);
     } catch {
       // non-fatal
     }

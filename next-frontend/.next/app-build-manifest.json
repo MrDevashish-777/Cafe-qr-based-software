@@ -1,15 +1,20 @@
 {
   "pages": {
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
     "/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
+    ],
+    "/admin/menu/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/menu/page.js"
+    ],
+    "/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/page.js"
     ],
     "/login/page": [
       "static/chunks/webpack.js",
@@ -21,35 +26,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/login/loading.js"
     ],
-    "/admin/menu/page": [
+    "/kitchen/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/menu/page.js"
+      "static/chunks/app/kitchen/page.js"
     ],
-    "/[cafeId]/page": [
+    "/kitchen/history/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/[cafeId]/page.js"
+      "static/chunks/app/kitchen/history/page.js"
     ],
-    "/[cafeId]/menu/page": [
+    "/waiter/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/[cafeId]/menu/page.js"
+      "static/chunks/app/waiter/page.js"
     ],
-    "/[cafeId]/menu/loading": [
+    "/waiter/history/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/[cafeId]/menu/loading.js"
-    ],
-    "/[cafeId]/cart/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/[cafeId]/cart/page.js"
-    ],
-    "/[cafeId]/orders/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/[cafeId]/orders/page.js"
+      "static/chunks/app/waiter/history/page.js"
     ]
   }
 }

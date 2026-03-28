@@ -16,6 +16,7 @@ import { getOrCreateVisitId } from "../../../lib/visitSession";
 import { setCssVarsFromCafe } from "../../../lib/theme";
 import { formatIndianMobileInput, normalizeIndianMobile } from "../../../lib/phoneIn";
 import { useTableGuard } from "../../../lib/useTableGuard";
+import { getCustomerSession, setCustomerSession } from "../../../lib/customerSession";
 import { motion, useReducedMotion } from "framer-motion";
 import { getCafeWithCache } from "../../../lib/cafeClient";
 
@@ -28,10 +29,6 @@ function writeCart(cafeId, tableNumber, cart) {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("qrdine-cart-updated"));
   }
-}
-
-function sessionKey(cafeId, tableNumber) {
-  return `customer:${cafeId}:table:${tableNumber}`;
 }
 
 export default function CartPage() {
@@ -81,8 +78,7 @@ export default function CartPage() {
     }
 
     try {
-      const raw = localStorage.getItem(sessionKey(cafeId, tableNumber));
-      const parsed = raw ? JSON.parse(raw) : null;
+      const parsed = getCustomerSession(cafeId, tableNumber);
       setCustomer(parsed);
       setCustomerName(parsed?.name || "");
       setCustomerPhone(formatIndianMobileInput(parsed?.phone || ""));
@@ -131,10 +127,10 @@ export default function CartPage() {
   useEffect(() => {
     if (!cafeId || !tableNumber) return;
     if (!customerName && !customerPhone) return;
-    localStorage.setItem(
-      sessionKey(cafeId, tableNumber),
-      JSON.stringify({ cafeId, tableNumber, name: customerName.trim(), phone: customerPhone.trim() })
-    );
+    setCustomerSession(cafeId, tableNumber, {
+      name: customerName.trim(),
+      phone: customerPhone.trim(),
+    });
   }, [cafeId, tableNumber, customerName, customerPhone]);
 
   useEffect(() => {
