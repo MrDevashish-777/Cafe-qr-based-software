@@ -14,6 +14,99 @@ const {
 } = require("../controllers/customerController");
 const { normalizePhone } = require("../utils/phone");
 
+function normalizePaymentMode(value, fallback = "cash") {
+  const normalized = typeof value === "string" ? value.trim().toLowerCase() : "";
+  const paymentValue = normalized || fallback;
+  if (!["cash", "upi"].includes(paymentValue)) {
+    throw new Error("paymentMode must be 'cash' or 'upi'");
+  }
+  return paymentValue;
+}
+
+async function resolveOrderItems(cafeId, items, { allowUnavailable = false } = {}) {
+  if (!Array.isArray(items) || items.length === 0) {
+    const error = new Error("items[] is required");
+    error.status = 400;
+    throw error;
+  }
+
+  const normalizedLines = items.map((line) => {
+    const menuItemId = line?.menuItemId;
+    const qty = Number(line?.qty);
+    return { menuItemId, qty };
+  });
+
+  for (const line of normalizedLines) {
+    if (!line.menuItemId) {
+      const error = new Error("Each item must include menuItemId");
+      error.status = 400;
+      throw error;
+    }
+    if (!line.qty || line.qty < 1) {
+      const error = new Error("Each item must have qty >= 1");
+      error.status = 400;
+      throw error;
+    }
+  }
+
+  const menuIds = normalizedLines.map((line) => line.menuItemId);
+  const menuQuery = {
+    _id: { $in: menuIds },
+    cafeId,
+  };
+  if (!allowUnavailable) {
+    menuQuery.isAvailable = true;
+  }
+
+  const menuDocs = await MenuItem.find(menuQuery)
+    .select("_id name price isAvailable")
+    .lean();
+
+  const menuMap = new Map(menuDocs.map((doc) => [String(doc._id), doc]));
+  if (menuMap.size !== menuIds.length) {
+    const error = new Error("One or more items are unavailable or do not belong to this cafe");
+    error.status = 400;
+    throw error;
+  }
+
+  const resolvedItems = [];
+  let lineSubtotal = 0;
+
+  for (const line of normalizedLines) {
+    const menuDoc = menuMap.get(String(line.menuItemId));
+    if (!menuDoc) {
+      const error = new Error("One or more items are unavailable or do not belong to this cafe");
+      error.status = 400;
+      throw error;
+    }
+
+    const unitPrice = Number(menuDoc.price);
+    lineSubtotal += unitPrice * line.qty;
+    resolvedItems.push({
+      menuItemId: menuDoc._id,
+      name: menuDoc.name,
+      price: unitPrice,
+      qty: line.qty,
+    });
+  }
+
+  return { resolvedItems, lineSubtotal };
+}
+
+async function buildResolvedOrderPayload(cafeId, items) {
+  const cafe = await Cafe.findById(cafeId).lean();
+  if (!cafe) {
+    const error = new Error("Cafe not found");
+    error.status = 404;
+    throw error;
+  }
+
+  const { resolvedItems, lineSubtotal } = await resolveOrderItems(cafeId, items);
+  const { subtotalAmount, discountAmount, taxAmount, totalAmount } = computeOrderTotals(cafe, lineSubtotal);
+
+  return { cafe, resolvedItems, subtotalAmount, discountAmount, taxAmount, totalAmount };
+}
+
 exports.listOrdersByTableVenue = async (req, res) => {
   const cafeId = process.env.DEFAULT_CAFE_ID;
   if (!cafeId) {
@@ -79,66 +172,9 @@ exports.createOrder = async (req, res) => {
       return res.status(400).json({ message: "items[] is required" });
     }
 
-    const normalizedLines = items.map((line) => {
-      const menuItemId = line?.menuItemId;
-      const qty = Number(line?.qty);
-      return { menuItemId, qty };
-    });
-
-    for (const line of normalizedLines) {
-      if (!line.menuItemId) {
-        return res.status(400).json({ message: "Each item must include menuItemId" });
-      }
-      if (!line.qty || line.qty < 1) {
-        return res.status(400).json({ message: "Each item must have qty >= 1" });
-      }
-    }
-
-    const menuIds = normalizedLines.map((line) => line.menuItemId);
-    const menuDocs = await MenuItem.find({
-      _id: { $in: menuIds },
-      cafeId,
-      isAvailable: true,
-    })
-      .select("_id name price")
-      .lean();
-
-    const menuMap = new Map(menuDocs.map((doc) => [String(doc._id), doc]));
-    if (menuMap.size !== menuIds.length) {
-      return res.status(400).json({
-        message: "One or more items are unavailable or do not belong to this cafe",
-      });
-    }
-
-    const resolvedItems = [];
-    let lineSubtotal = 0;
-
-    for (const line of normalizedLines) {
-      const menuDoc = menuMap.get(String(line.menuItemId));
-      if (!menuDoc) {
-        return res.status(400).json({
-          message: "One or more items are unavailable or do not belong to this cafe",
-        });
-      }
-
-      const unitPrice = Number(menuDoc.price);
-      lineSubtotal += unitPrice * line.qty;
-      resolvedItems.push({
-        menuItemId: menuDoc._id,
-        name: menuDoc.name,
-        price: unitPrice,
-        qty: line.qty,
-      });
-    }
-
+    const { resolvedItems, lineSubtotal } = await resolveOrderItems(cafeId, items);
     const { subtotalAmount, discountAmount, taxAmount, totalAmount } = computeOrderTotals(cafe, lineSubtotal);
-
-    const normalizedPayment =
-      typeof paymentMode === "string" ? paymentMode.trim().toLowerCase() : "";
-    const paymentValue = normalizedPayment || "cash";
-    if (!["cash", "upi"].includes(paymentValue)) {
-      return res.status(400).json({ message: "paymentMode must be 'cash' or 'upi'" });
-    }
+    const paymentValue = normalizePaymentMode(paymentMode, "cash");
 
     const order = await Order.create({
       cafeId,
@@ -153,6 +189,7 @@ exports.createOrder = async (req, res) => {
       taxAmount,
       totalAmount,
       paymentMode: paymentValue,
+      source: "qr",
       status: "pending",
     });
 
@@ -279,7 +316,64 @@ exports.listMyOrdersInCafe = async (req, res) => {
 
     return res.json(orders);
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error });
+    return res.status(error.status || 500).json({ message: error.message || "Server error", error });
+  }
+};
+
+exports.createStaffOrder = async (req, res) => {
+  try {
+    const actorCafeId = req.user?.cafeId ? String(req.user.cafeId) : "";
+    const cafeId = req.user?.role === "super_admin" ? req.body?.cafeId || actorCafeId : actorCafeId;
+    const tableNumber = Number(req.body?.tableNumber);
+    const customerName = String(req.body?.customerName || "").trim() || "Walk-in guest";
+    const phone = String(req.body?.phone || "").trim() || `manual-table-${tableNumber}`;
+    const notes = typeof req.body?.notes === "string" ? req.body.notes.trim() : "";
+    const status = typeof req.body?.status === "string" ? req.body.status.trim().toLowerCase() : "pending";
+
+    if (!cafeId) return res.status(400).json({ message: "cafeId is required" });
+    if (!canAccessCafe(req.user, cafeId)) return forbiddenTenant(res);
+    if (!tableNumber || tableNumber < 1) {
+      return res.status(400).json({ message: "tableNumber must be >= 1" });
+    }
+
+    const allowedStatuses = ["pending", "accepted", "preparing", "ready", "served"];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status for manual order" });
+    }
+
+    const { cafe, resolvedItems, subtotalAmount, discountAmount, taxAmount, totalAmount } =
+      await buildResolvedOrderPayload(cafeId, req.body?.items);
+
+    if (cafe.isActive === false) {
+      return res.status(403).json({ message: "This cafe is not accepting orders" });
+    }
+
+    const order = await Order.create({
+      cafeId,
+      tableNumber,
+      visitId: "",
+      customerName,
+      phone,
+      notes,
+      items: resolvedItems,
+      subtotalAmount,
+      discountAmount,
+      taxAmount,
+      totalAmount,
+      paymentMode: normalizePaymentMode(req.body?.paymentMode, "cash"),
+      source: "manual",
+      status,
+    });
+
+    await Table.findOneAndUpdate(
+      { cafeId, tableNumber },
+      { $set: { status: ["served", "paid", "rejected"].includes(status) ? "free" : "reserved" } }
+    );
+
+    emitCafeEvent(order.cafeId, "NEW_ORDER", order);
+    return res.status(201).json(order);
+  } catch (error) {
+    return res.status(error.status || 500).json({ message: error.message || "Server error", error });
   }
 };
 
@@ -309,6 +403,45 @@ exports.updateOrder = async (req, res) => {
     }
 
     const prevStatus = prev.status;
+    const prevTableNumber = Number(prev.tableNumber);
+
+    if (Object.prototype.hasOwnProperty.call(update, "source")) {
+      delete update.source;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(update, "tableNumber")) {
+      const nextTableNumber = Number(update.tableNumber);
+      if (!nextTableNumber || nextTableNumber < 1) {
+        return res.status(400).json({ message: "tableNumber must be >= 1" });
+      }
+      update.tableNumber = nextTableNumber;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(update, "paymentMode")) {
+      update.paymentMode = normalizePaymentMode(update.paymentMode, prev.paymentMode || "cash");
+    }
+
+    if (Object.prototype.hasOwnProperty.call(update, "customerName")) {
+      update.customerName = String(update.customerName || "").trim() || prev.customerName;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(update, "phone")) {
+      update.phone = String(update.phone || "").trim() || prev.phone;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(update, "notes")) {
+      update.notes = typeof update.notes === "string" ? update.notes.trim() : "";
+    }
+
+    if (Array.isArray(update.items)) {
+      const { resolvedItems, subtotalAmount, discountAmount, taxAmount, totalAmount } =
+        await buildResolvedOrderPayload(String(prev.cafeId), update.items);
+      update.items = resolvedItems;
+      update.subtotalAmount = subtotalAmount;
+      update.discountAmount = discountAmount;
+      update.taxAmount = taxAmount;
+      update.totalAmount = totalAmount;
+    }
 
     const order = await Order.findByIdAndUpdate(req.params.id, update, {
       new: true,
@@ -327,10 +460,29 @@ exports.updateOrder = async (req, res) => {
         { cafeId: order.cafeId, tableNumber: order.tableNumber },
         { $set: { status: "free" } }
       );
+    } else if (["pending", "accepted", "baking", "preparing", "ready"].includes(order.status)) {
+      await Table.findOneAndUpdate(
+        { cafeId: order.cafeId, tableNumber: order.tableNumber },
+        { $set: { status: "reserved" } }
+      );
+    }
+
+    if (prevTableNumber && prevTableNumber !== Number(order.tableNumber)) {
+      const oldTableHasActiveOrders = await Order.exists({
+        cafeId: order.cafeId,
+        tableNumber: prevTableNumber,
+        status: { $nin: ["served", "paid", "rejected"] },
+        _id: { $ne: order._id },
+      });
+
+      await Table.findOneAndUpdate(
+        { cafeId: order.cafeId, tableNumber: prevTableNumber },
+        { $set: { status: oldTableHasActiveOrders ? "reserved" : "free" } }
+      );
     }
 
     return res.json(order);
   } catch (error) {
-    return res.status(500).json({ message: "Server error", error });
+    return res.status(error.status || 500).json({ message: error.message || "Server error", error });
   }
 };

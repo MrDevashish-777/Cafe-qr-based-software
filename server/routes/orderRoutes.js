@@ -4,6 +4,12 @@ const orderController = require("../controllers/orderController");
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 router.post("/", orderController.createOrder);
+router.post(
+  "/staff",
+  requireAuth,
+  requireRole(["kitchen", "cafe_admin", "super_admin"]),
+  orderController.createStaffOrder
+);
 router.get("/venue/table/:tableNumber", orderController.listOrdersByTableVenue);
 router.get("/:cafeId/mine", orderController.listMyOrdersInCafe);
 router.get("/:cafeId/table/:tableNumber", orderController.listOrdersByTable);

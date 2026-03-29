@@ -39,6 +39,12 @@ const orderSchema = new mongoose.Schema(
       default: "cash",
     },
 
+    source: {
+      type: String,
+      enum: ["qr", "manual"],
+      default: "qr",
+    },
+
     status: {
       type: String,
       enum: ["pending", "accepted", "baking", "preparing", "ready", "served", "paid", "rejected"],
