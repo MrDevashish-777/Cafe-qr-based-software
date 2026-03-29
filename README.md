@@ -100,6 +100,8 @@ Create your environment files using the templates below.
 ```
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5000
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name_here
+# Canonical URL where guests open the ordering app (table QR links). Optional if you only save it per café in admin.
+NEXT_PUBLIC_CUSTOMER_APP_URL=https://your-customer-facing-domain.example
 ```
 
 ### Backend (`server/.env`)
@@ -172,6 +174,7 @@ Emitted events:
 ```
 
 ## Troubleshooting
+- Netlify usage limits: open **Netlify → your site → Usage** and check whether counts map to **Image transforms** (often from `next/image` on remote URLs), **Functions**, or another category—then optimize that path (e.g. `unoptimized` or static assets for images you do not need resized).
 - Auth error about missing JWT: set `JWT_SECRET` and ensure `jsonwebtoken` is installed in `server`.
 - Realtime not working: ensure `socket.io` is installed and the frontend connects to the same API base URL.
 - Cloudinary images not loading: confirm `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` and Cloudinary keys on the backend.

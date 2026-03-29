@@ -32,7 +32,8 @@ const allowedOrigins = [
   "http://localhost:5000",
   "http://localhost:3000",
   "https://cafe-qr-based-software.onrender.com",
-  "https://coffee-culture-nagpur.netlify.app",
+  "https://www.coffeeculturenagpur.com/",
+  "https://cafe-qr-based-software.vercel.app/",
 ];
 
 function isAllowedOrigin(origin) {
@@ -75,7 +76,7 @@ app.use('/api/qr', qrRoutes);
 
 // Health check
 app.get('/', (req, res) => {
-    res.send('Restaurant backend running');
+  res.send('Restaurant backend running');
 });
 
 const PORT = process.env.PORT || 5000;

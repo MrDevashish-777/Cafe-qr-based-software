@@ -8,6 +8,8 @@ const cafeSchema = new mongoose.Schema(
     logoUrl: { type: String, default: "", trim: true },
     brandImageUrl: { type: String, default: "", trim: true },
     upiQrUrl: { type: String, default: "", trim: true },
+    /** Canonical origin for customer app links in printed table QRs (e.g. https://order.example.com). */
+    customerOrderBaseUrl: { type: String, default: "", trim: true },
     taxPercent: { type: Number, default: 0, min: 0 },
     discountType: { type: String, enum: ["percent", "fixed"], default: "percent" },
     discountValue: { type: Number, default: 0, min: 0 },
