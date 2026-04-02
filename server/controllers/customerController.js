@@ -13,6 +13,26 @@ function customerSecret() {
   return process.env.CUSTOMER_JWT_SECRET || process.env.JWT_SECRET;
 }
 
+function isSecureRequest(req) {
+  if (req?.secure) return true;
+  const forwardedProto = req?.headers?.["x-forwarded-proto"];
+  if (typeof forwardedProto === "string") {
+    return forwardedProto.split(",")[0].trim().toLowerCase() === "https";
+  }
+  return false;
+}
+
+function getCustomerCookieOptions(req) {
+  const secure = process.env.NODE_ENV === "production" || isSecureRequest(req);
+  return {
+    httpOnly: true,
+    secure,
+    sameSite: secure ? "none" : "lax",
+    maxAge: CUSTOMER_COOKIE_MAX_AGE_MS,
+    path: "/",
+  };
+}
+
 async function loadCurrentCustomer(req) {
   const token = req.cookies?.[CUSTOMER_COOKIE_NAME];
   if (!token) return { status: 401, message: "Not signed in" };
@@ -112,13 +132,7 @@ exports.signCustomerCookie = (res, customerDoc, req) => {
   const secret = customerSecret();
   const token = signCustomerToken({ customerId: customerDoc?._id, req, secret });
   if (!token) return;
-  res.cookie(CUSTOMER_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: CUSTOMER_COOKIE_MAX_AGE_MS,
-    path: "/",
-  });
+  res.cookie(CUSTOMER_COOKIE_NAME, token, getCustomerCookieOptions(req));
 };
 
 exports.getCurrentCustomer = async (req) => {

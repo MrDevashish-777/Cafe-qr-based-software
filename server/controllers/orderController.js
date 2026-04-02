@@ -171,6 +171,8 @@ exports.createOrder = async (req, res) => {
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "items[] is required" });
     }
+    const normalizedPhone = normalizePhone(String(phone));
+    if (!normalizedPhone) return res.status(400).json({ message: "phone is required" });
 
     const { resolvedItems, lineSubtotal } = await resolveOrderItems(cafeId, items);
     const { subtotalAmount, discountAmount, taxAmount, totalAmount } = computeOrderTotals(cafe, lineSubtotal);
@@ -181,7 +183,7 @@ exports.createOrder = async (req, res) => {
       tableNumber,
       visitId: visit,
       customerName,
-      phone,
+      phone: normalizedPhone,
       notes: typeof notes === "string" ? notes.trim() : "",
       items: resolvedItems,
       subtotalAmount,
@@ -202,7 +204,7 @@ exports.createOrder = async (req, res) => {
 
     try {
       const cust = await upsertCustomerFromOrder({
-        phone,
+        phone: normalizedPhone,
         name: customerName,
         tableNumber,
         cafeId,
@@ -306,11 +308,16 @@ exports.listMyOrdersInCafe = async (req, res) => {
 
     const normalized = normalizePhone(current.customer?.phone);
     if (!normalized) return res.json([]);
+    const visitId = typeof req.query.visitId === "string" ? req.query.visitId.trim() : "";
 
-    const orders = await Order.find({
+    const query = {
       cafeId,
+      tableNumber: Number(tableNumber),
       phone: normalized,
-    })
+    };
+    if (visitId) query.visitId = visitId;
+
+    const orders = await Order.find(query)
       .sort({ createdAt: -1 })
       .lean();
 
@@ -426,7 +433,7 @@ exports.updateOrder = async (req, res) => {
     }
 
     if (Object.prototype.hasOwnProperty.call(update, "phone")) {
-      update.phone = String(update.phone || "").trim() || prev.phone;
+      update.phone = normalizePhone(String(update.phone || "")) || prev.phone;
     }
 
     if (Object.prototype.hasOwnProperty.call(update, "notes")) {

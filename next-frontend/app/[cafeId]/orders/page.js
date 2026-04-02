@@ -17,6 +17,8 @@ import StaffAlertBanner from "../../../components/StaffAlertBanner";
 import { AppLoading } from "../../../components/AppLoading";
 import { useTableGuard } from "../../../lib/useTableGuard";
 import { getCafeWithCache } from "../../../lib/cafeClient";
+import { getCustomerSession } from "../../../lib/customerSession";
+import { peekVisitId } from "../../../lib/visitSession";
 
 const statusSteps = ["pending", "accepted", "preparing", "ready", "served", "paid", "rejected"];
 
@@ -27,6 +29,10 @@ export default function OrdersPage() {
   const cafeId = params.cafeId;
   const tableNumber = useMemo(() => searchParams.get("table"), [searchParams]);
   const tableToken = useMemo(() => searchParams.get("t") || "", [searchParams]);
+  const visitId = useMemo(
+    () => (cafeId && tableNumber ? peekVisitId(cafeId, tableNumber) : ""),
+    [cafeId, tableNumber]
+  );
 
   const COFFEE_CULTURE_LOGO_URL =
     "https://res.cloudinary.com/cafe-restaurants/image/upload/v1774080951/qrdine/godexhv2hm06cm1epkqo.jpg";
@@ -52,17 +58,17 @@ export default function OrdersPage() {
     setError("");
     try {
       const q = new URLSearchParams({
-        tableNumber: String(tableNumber),
         t: tableToken,
       });
-      const data = await apiFetch(`/api/orders/${cafeId}/mine?${q.toString()}`);
+      if (visitId) q.set("visitId", visitId);
+      const data = await apiFetch(`/api/orders/${cafeId}/table/${tableNumber}?${q.toString()}`);
       setOrders(Array.isArray(data) ? data : []);
     } catch (e) {
       setError(e.message || "Failed to load orders");
     } finally {
       setLoading(false);
     }
-  }, [cafeId, tableGuard.status, tableNumber, tableToken]);
+  }, [cafeId, tableGuard.status, tableNumber, tableToken, visitId]);
 
   useEffect(() => {
     if (cafeId && tableNumber && tableGuard.status === "ok") load();
@@ -70,15 +76,19 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!cafeId || tableGuard.status !== "ok") return;
+    const local = getCustomerSession(cafeId, tableNumber);
+    if (local?.phone) {
+      setCustomerPhone(String(local.phone || "").trim());
+    }
     (async () => {
       try {
         const me = await apiFetch("/api/customers/me");
         setCustomerPhone(String(me?.phone || "").trim());
       } catch {
-        setCustomerPhone("");
+        if (!local?.phone) setCustomerPhone("");
       }
     })();
-  }, [cafeId, tableGuard.status]);
+  }, [cafeId, tableGuard.status, tableNumber]);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,7 +122,9 @@ export default function OrdersPage() {
     const onOrder = (payload) => {
       if (!payload?._id) return;
       if (!customerPhone) return;
-      if (String(payload.phone || "").trim() !== customerPhone) return;
+      if (String(payload.tableNumber || "") !== String(tableNumber || "")) return;
+      if (visitId && String(payload.visitId || "") !== visitId) return;
+      if (String(payload.phone || "").replace(/\D/g, "") !== customerPhone.replace(/\D/g, "")) return;
       playCustomerStatus();
       setStatusToast(`Order ${String(payload._id).slice(-6)} · ${payload.status || "updated"}`);
       setTimeout(() => setStatusToast(""), 5000);
@@ -138,7 +150,7 @@ export default function OrdersPage() {
       socket.off("ORDER_PAID", onOrder);
       socket.disconnect();
     };
-  }, [cafeId, customerPhone, tableGuard.status]);
+  }, [cafeId, customerPhone, tableGuard.status, tableNumber, visitId]);
 
   if (tableGuard.status === "checking") {
     return (
@@ -218,7 +230,7 @@ export default function OrdersPage() {
             <AppLoading label="Loading your orders" className="min-h-[30vh]" />
           ) : orders.length === 0 ? (
             <div className="mt-6 rounded-3xl border border-white/70 bg-white/80 p-6 text-center text-sm text-slate-600 shadow-sm">
-              No orders yet for this customer in this cafe.
+              No orders yet for this table visit.
             </div>
           ) : (
             <div className="mt-4 space-y-4">
