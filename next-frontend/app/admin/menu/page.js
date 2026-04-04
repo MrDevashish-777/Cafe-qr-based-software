@@ -154,6 +154,7 @@ export default function AdminMenuPage() {
 
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ name: "", description: "", price: "", category: "", type: "veg", image: "", isSpecial: false });
+  const [specialActionId, setSpecialActionId] = useState("");
 
   const defaultCategories = [
     "Beverages",
@@ -322,6 +323,12 @@ export default function AdminMenuPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState("");
   const [analyticsDays, setAnalyticsDays] = useState("30");
+
+  const currentStarMenuItem = useMemo(() => {
+    const starId = String(analytics?.starItem?._id || "").trim();
+    if (!starId) return null;
+    return items.find((item) => String(item?._id || "") === starId) || null;
+  }, [analytics?.starItem?._id, items]);
   const [collapsedSections, setCollapsedSections] = useState({
     pickCafe: true,
     overview: true,
@@ -425,6 +432,7 @@ export default function AdminMenuPage() {
 
       const byDayMap = new Map();
       const statusMap = new Map();
+      const topItemsMap = new Map();
       let paidRevenueTotal = 0;
 
       for (const order of Array.isArray(orders) ? orders : []) {
@@ -448,15 +456,47 @@ export default function AdminMenuPage() {
         if (status.toLowerCase() === "paid") {
           paidRevenueTotal += revenue;
         }
+
+        if (!isRejected) {
+          for (const item of Array.isArray(order?.items) ? order.items : []) {
+            const itemId = String(item?.menuItemId || item?.name || "").trim();
+            const itemName = String(item?.name || "Menu item").trim() || "Menu item";
+            const qty = Math.max(0, Number(item?.qty || 0));
+            const lineRevenue = Math.max(0, Number(item?.price || 0) * qty);
+            if (!itemId || qty <= 0) continue;
+
+            const currentItem = topItemsMap.get(itemId) || {
+              _id: itemId,
+              name: itemName,
+              qty: 0,
+              revenue: 0,
+              orders: 0,
+            };
+
+            currentItem.qty += qty;
+            currentItem.revenue += lineRevenue;
+            currentItem.orders += 1;
+            topItemsMap.set(itemId, currentItem);
+          }
+        }
       }
 
       const byDay = Array.from(byDayMap.values()).sort((a, b) => a._id.localeCompare(b._id));
       const statusBreakdown = Array.from(statusMap.entries()).map(([_id, count]) => ({ _id, count }));
+      const topItems = Array.from(topItemsMap.values())
+        .sort((a, b) => {
+          if (b.qty !== a.qty) return b.qty - a.qty;
+          if (b.revenue !== a.revenue) return b.revenue - a.revenue;
+          return a.name.localeCompare(b.name);
+        })
+        .slice(0, 5);
 
       setAnalytics({
         byDay,
         statusBreakdown,
         paidRevenueTotal,
+        topItems,
+        starItem: topItems[0] || null,
         rangeDays: days,
       });
     } catch (e) {
@@ -1440,6 +1480,38 @@ export default function AdminMenuPage() {
     }
   };
 
+  const markStarItemAsSpecial = async () => {
+    const starItem = currentStarMenuItem;
+    if (!starItem?._id) return;
+    if (!requireLogin(false)) return;
+    setSpecialActionId(String(starItem._id));
+    setError("");
+    try {
+      const body = {
+        name: starItem.name,
+        description: starItem.description || "",
+        price: Number(starItem.price),
+        category: starItem.category || "",
+        type: starItem.type || "veg",
+        image: starItem.image || "",
+        isSpecial: true,
+      };
+      if (role === "super_admin" && adminCafeId) body.cafeId = adminCafeId;
+
+      const updated = await apiFetch(`/api/admin/menu/${starItem._id}`, {
+        method: "PUT",
+        headers: { ...authHeaders() },
+        body: JSON.stringify(body),
+      });
+
+      setItems((prev) => prev.map((item) => (item._id === updated._id ? updated : item)));
+    } catch (e) {
+      setError(e.message || "Failed to mark the star item as special");
+    } finally {
+      setSpecialActionId("");
+    }
+  };
+
   const deleteItem = async (id) => {
     if (!requireLogin(false)) return;
     const ok = window.confirm("Delete this menu item?");
@@ -1629,6 +1701,80 @@ export default function AdminMenuPage() {
                             <Bar dataKey="count" fill="#0d9488" name="Orders" radius={[6, 6, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
+                      </div>
+
+                      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                        <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5">
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Suggested star item</div>
+                          {analytics?.starItem ? (
+                            <>
+                              <div className="mt-3 text-2xl font-extrabold text-slate-900">{analytics.starItem.name}</div>
+                              <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-600">
+                                <span className="rounded-full border border-amber-200 bg-white px-3 py-1">
+                                  Sold {analytics.starItem.qty} plates
+                                </span>
+                                <span className="rounded-full border border-amber-200 bg-white px-3 py-1">
+                                  Revenue {formatCurrency(analytics.starItem.revenue)}
+                                </span>
+                                <span className="rounded-full border border-amber-200 bg-white px-3 py-1">
+                                  In {analytics.starItem.orders} orders
+                                </span>
+                              </div>
+                              <div className="mt-3 text-sm text-slate-600">
+                                This is your current best-seller in the selected date range, so it is the best candidate to mark as a special item.
+                              </div>
+                              <div className="mt-4">
+                                <Button
+                                  type="button"
+                                  onClick={markStarItemAsSpecial}
+                                  disabled={!currentStarMenuItem?._id || currentStarMenuItem?.isSpecial || specialActionId === String(currentStarMenuItem?._id || "")}
+                                >
+                                  {currentStarMenuItem?.isSpecial
+                                    ? "Already marked special"
+                                    : specialActionId === String(currentStarMenuItem?._id || "")
+                                      ? "Marking..."
+                                      : "Mark as special"}
+                                </Button>
+                              </div>
+                              {!currentStarMenuItem?._id ? (
+                                <div className="mt-3 text-xs text-slate-500">
+                                  This item is visible in order history but is not available in the current menu editor list.
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <div className="mt-3 text-sm text-slate-600">
+                              No item sales data is available for this date range yet.
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="rounded-2xl border border-slate-100 bg-white p-5">
+                          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Top selling items</div>
+                          {(analytics?.topItems || []).length ? (
+                            <div className="mt-4 space-y-3">
+                              {(analytics?.topItems || []).map((item, index) => (
+                                <div key={item._id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-semibold text-slate-900">
+                                      #{index + 1} {item.name}
+                                    </div>
+                                    <div className="mt-1 text-xs text-slate-500">
+                                      {item.qty} sold across {item.orders} orders
+                                    </div>
+                                  </div>
+                                  <div className="shrink-0 text-sm font-semibold text-slate-700">
+                                    {formatCurrency(item.revenue)}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="mt-3 text-sm text-slate-600">
+                              Top-selling items will appear here once orders are placed.
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
