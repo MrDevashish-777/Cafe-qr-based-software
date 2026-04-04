@@ -573,8 +573,8 @@ export default function WaiterPage() {
             const statusPalette = getOrderStatusPalette(o.status);
             return (
             <motion.div key={o._id} initial={motionInitial} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-              <Card className={`shadow-lg ${statusPalette.card}`}>
-                <CardContent className={statusPalette.body || ""}>
+              <Card className={`shadow-lg ${statusPalette.cardClassName || ""}`} style={statusPalette.cardStyle}>
+                <CardContent style={statusPalette.bodyStyle}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="font-extrabold text-slate-900">Table {o.tableNumber}</div>
@@ -582,12 +582,18 @@ export default function WaiterPage() {
                         {o.customerName} - {o.phone}
                       </div>
                     </div>
-                    <div className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${statusPalette.pill}`}>
+                    <div
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase ${statusPalette.pillClassName || ""}`}
+                      style={statusPalette.pillStyle}
+                    >
                       {statusPalette.normalized || o.status}
                     </div>
                   </div>
 
-                  <div className={`mt-3 space-y-2 rounded-2xl border px-4 py-3 text-sm ${statusPalette.panel || "border-slate-100 bg-white/90"}`}>
+                  <div
+                    className={`mt-3 space-y-2 rounded-2xl border px-4 py-3 text-sm ${statusPalette.panelClassName || "border-slate-100"}`}
+                    style={statusPalette.panelStyle}
+                  >
                     {o.items.map((it, idx) => (
                       <div key={idx} className="flex items-start justify-between gap-3">
                         <span className="min-w-0 break-words">
@@ -620,7 +626,10 @@ export default function WaiterPage() {
                     const taxAmount = hasServerPricing ? Number(o.taxAmount) : subtotal * (taxRate / 100);
                     const totalFinal = hasServerPricing ? Number(o.totalAmount || 0) : subtotal + taxAmount;
                     return (
-                      <div className={`mt-3 space-y-1 rounded-2xl border px-4 py-3 text-sm ${statusPalette.panel || "border-slate-100 bg-white/90"}`}>
+                      <div
+                        className={`mt-3 space-y-1 rounded-2xl border px-4 py-3 text-sm ${statusPalette.panelClassName || "border-slate-100"}`}
+                        style={statusPalette.panelStyle}
+                      >
                         <div className="flex justify-between text-slate-600">
                           <span>Subtotal</span>
                           <span>INR {subtotal.toFixed(2)}</span>

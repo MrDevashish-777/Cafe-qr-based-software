@@ -581,11 +581,13 @@ export default function KitchenPage() {
               className={`min-w-0 ${needsAttention ? "kitchen-order-attention" : ""}`}
             >
               <Card
-                className={`overflow-hidden shadow-lg transition ${statusPalette.card}`}
+                className={`overflow-hidden shadow-lg transition ${statusPalette.cardClassName || ""}`}
+                style={statusPalette.cardStyle}
               >
-                <CardContent className={`p-0 ${statusPalette.body || ""}`}>
+                <CardContent className="p-0" style={statusPalette.bodyStyle}>
                   <div
-                    className={`flex flex-wrap items-start justify-between gap-3 border-b px-4 py-4 sm:px-5 ${statusPalette.header}`}
+                    className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200/80 px-4 py-4 sm:px-5"
+                    style={statusPalette.headerStyle}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -613,13 +615,19 @@ export default function KitchenPage() {
                         <div className="text-xs text-slate-500">{formatKitchenPhone(o.phone)}</div>
                       </div>
                     </div>
-                    <div className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide shadow-sm ${statusPalette.pill}`}>
+                    <div
+                      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wide shadow-sm ${statusPalette.pillClassName || ""}`}
+                      style={statusPalette.pillStyle}
+                    >
                       {statusPalette.normalized || o.status}
                     </div>
                   </div>
 
                   <div className="px-4 pb-3 pt-3 sm:px-5">
-                  <div className={`max-h-[min(22rem,50vh)] space-y-2 overflow-y-auto overscroll-contain rounded-xl border p-3 text-sm [scrollbar-gutter:stable] ${statusPalette.panel || "border-slate-100 bg-slate-50/80"}`}>
+                  <div
+                    className={`max-h-[min(22rem,50vh)] space-y-2 overflow-y-auto overscroll-contain rounded-xl border p-3 text-sm [scrollbar-gutter:stable] ${statusPalette.panelClassName || "border-slate-100"}`}
+                    style={statusPalette.panelStyle}
+                  >
                     {(Array.isArray(o.items) ? o.items : []).map((it, idx) => (
                       <div
                         key={idx}
@@ -661,7 +669,10 @@ export default function KitchenPage() {
                     const taxAmount = hasServerPricing ? Number(o.taxAmount) : subtotal * (taxRate / 100);
                     const totalFinal = hasServerPricing ? Number(o.totalAmount || 0) : subtotal + taxAmount;
                     return (
-                      <div className={`mt-3 space-y-1 rounded-xl border px-3 py-2 text-sm ${statusPalette.panel || "border-slate-100 bg-white/90"}`}>
+                      <div
+                        className={`mt-3 space-y-1 rounded-xl border px-3 py-2 text-sm ${statusPalette.panelClassName || "border-slate-100"}`}
+                        style={statusPalette.panelStyle}
+                      >
                         <div className="flex justify-between text-slate-600">
                           <span>Subtotal</span>
                           <span className="tabular-nums">₹{subtotal.toFixed(2)}</span>
