@@ -591,7 +591,7 @@ export default function KitchenPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-extrabold text-slate-900">Table {o.tableNumber}</span>
+                        <span className={`font-extrabold ${statusPalette.titleClassName || "text-slate-900"}`}>Table {o.tableNumber}</span>
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
                             isManual ? "bg-amber-100 text-amber-900" : "bg-slate-200/80 text-slate-700"
@@ -610,9 +610,9 @@ export default function KitchenPage() {
                           )}
                         </span>
                       </div>
-                      <div className="mt-1.5 space-y-0.5 text-sm text-slate-600">
-                        <div className="break-words font-medium text-slate-800">{o.customerName || "Guest"}</div>
-                        <div className="text-xs text-slate-500">{formatKitchenPhone(o.phone)}</div>
+                      <div className={`mt-1.5 space-y-0.5 text-sm ${statusPalette.mutedTextClassName || "text-slate-600"}`}>
+                        <div className={`break-words font-medium ${statusPalette.textClassName || "text-slate-800"}`}>{o.customerName || "Guest"}</div>
+                        <div className={`text-xs ${statusPalette.mutedTextClassName || "text-slate-500"}`}>{formatKitchenPhone(o.phone)}</div>
                       </div>
                     </div>
                     <div
@@ -625,13 +625,13 @@ export default function KitchenPage() {
 
                   <div className="px-4 pb-3 pt-3 sm:px-5">
                   <div
-                    className={`max-h-[min(22rem,50vh)] space-y-2 overflow-y-auto overscroll-contain rounded-xl border p-3 text-sm [scrollbar-gutter:stable] ${statusPalette.panelClassName || "border-slate-100"}`}
+                    className={`max-h-[min(22rem,50vh)] space-y-2 overflow-y-auto overscroll-contain rounded-xl border p-3 text-sm [scrollbar-gutter:stable] ${statusPalette.panelClassName || "border-slate-100"} ${statusPalette.panelTextClassName || "text-slate-900"}`}
                     style={statusPalette.panelStyle}
                   >
                     {(Array.isArray(o.items) ? o.items : []).map((it, idx) => (
                       <div
                         key={idx}
-                        className="flex items-start justify-between gap-3 border-b border-slate-100/90 pb-2 last:border-0 last:pb-0"
+                        className={`flex items-start justify-between gap-3 border-b border-slate-100/90 pb-2 last:border-0 last:pb-0 ${statusPalette.panelTextClassName || "text-slate-900"}`}
                       >
                         <span className="min-w-0 flex-1 break-words leading-snug text-slate-800">
                           <span className="font-semibold">{lineItemLabel(it)}</span>
@@ -645,7 +645,7 @@ export default function KitchenPage() {
                   </div>
 
                   {o.paymentMode && (
-                    <div className="mt-3 text-xs font-semibold text-slate-600">
+                    <div className={`mt-3 text-xs font-semibold ${statusPalette.textClassName || "text-slate-600"}`}>
                       Payment: {String(o.paymentMode).toUpperCase()}
                     </div>
                   )}
@@ -670,24 +670,24 @@ export default function KitchenPage() {
                     const totalFinal = hasServerPricing ? Number(o.totalAmount || 0) : subtotal + taxAmount;
                     return (
                       <div
-                        className={`mt-3 space-y-1 rounded-xl border px-3 py-2 text-sm ${statusPalette.panelClassName || "border-slate-100"}`}
+                        className={`mt-3 space-y-1 rounded-xl border px-3 py-2 text-sm ${statusPalette.panelClassName || "border-slate-100"} ${statusPalette.panelTextClassName || "text-slate-900"}`}
                         style={statusPalette.panelStyle}
                       >
-                        <div className="flex justify-between text-slate-600">
+                        <div className={`flex justify-between ${statusPalette.panelMutedTextClassName || "text-slate-600"}`}>
                           <span>Subtotal</span>
                           <span className="tabular-nums">₹{subtotal.toFixed(2)}</span>
                         </div>
                         {discount > 0 && (
-                          <div className="flex justify-between text-slate-600">
+                          <div className={`flex justify-between ${statusPalette.panelMutedTextClassName || "text-slate-600"}`}>
                             <span>Discount</span>
                             <span className="tabular-nums">− ₹{discount.toFixed(2)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between text-slate-600">
+                        <div className={`flex justify-between ${statusPalette.panelMutedTextClassName || "text-slate-600"}`}>
                           <span>Tax {!hasServerPricing && taxRate ? `(${taxRate}%)` : ""}</span>
                           <span className="tabular-nums">₹{taxAmount.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between border-t border-slate-100 pt-1 font-extrabold text-slate-900">
+                        <div className={`flex justify-between border-t border-slate-100 pt-1 font-extrabold ${statusPalette.panelTextClassName || "text-slate-900"}`}>
                           <span>Total</span>
                           <span className="tabular-nums">₹{totalFinal.toFixed(2)}</span>
                         </div>

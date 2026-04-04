@@ -577,8 +577,8 @@ export default function WaiterPage() {
                 <CardContent style={statusPalette.bodyStyle}>
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-extrabold text-slate-900">Table {o.tableNumber}</div>
-                      <div className="break-words text-sm text-gray-600">
+                      <div className={`font-extrabold ${statusPalette.titleClassName || "text-slate-900"}`}>Table {o.tableNumber}</div>
+                      <div className={`break-words text-sm ${statusPalette.mutedTextClassName || "text-gray-600"}`}>
                         {o.customerName} - {o.phone}
                       </div>
                     </div>
@@ -591,7 +591,7 @@ export default function WaiterPage() {
                   </div>
 
                   <div
-                    className={`mt-3 space-y-2 rounded-2xl border px-4 py-3 text-sm ${statusPalette.panelClassName || "border-slate-100"}`}
+                    className={`mt-3 space-y-2 rounded-2xl border px-4 py-3 text-sm ${statusPalette.panelClassName || "border-slate-100"} ${statusPalette.panelTextClassName || "text-slate-900"}`}
                     style={statusPalette.panelStyle}
                   >
                     {o.items.map((it, idx) => (
@@ -605,7 +605,7 @@ export default function WaiterPage() {
                   </div>
 
                   {o.paymentMode && (
-                    <div className="mt-2 text-xs font-semibold text-slate-600">
+                    <div className={`mt-2 text-xs font-semibold ${statusPalette.textClassName || "text-slate-600"}`}>
                       Payment: {String(o.paymentMode).toUpperCase()}
                     </div>
                   )}
@@ -627,24 +627,24 @@ export default function WaiterPage() {
                     const totalFinal = hasServerPricing ? Number(o.totalAmount || 0) : subtotal + taxAmount;
                     return (
                       <div
-                        className={`mt-3 space-y-1 rounded-2xl border px-4 py-3 text-sm ${statusPalette.panelClassName || "border-slate-100"}`}
+                        className={`mt-3 space-y-1 rounded-2xl border px-4 py-3 text-sm ${statusPalette.panelClassName || "border-slate-100"} ${statusPalette.panelTextClassName || "text-slate-900"}`}
                         style={statusPalette.panelStyle}
                       >
-                        <div className="flex justify-between text-slate-600">
+                        <div className={`flex justify-between ${statusPalette.panelMutedTextClassName || "text-slate-600"}`}>
                           <span>Subtotal</span>
                           <span>INR {subtotal.toFixed(2)}</span>
                         </div>
                         {discount > 0 && (
-                          <div className="flex justify-between text-slate-600">
+                          <div className={`flex justify-between ${statusPalette.panelMutedTextClassName || "text-slate-600"}`}>
                             <span>Discount</span>
                             <span>- INR {discount.toFixed(2)}</span>
                           </div>
                         )}
-                        <div className="flex justify-between text-slate-600">
+                        <div className={`flex justify-between ${statusPalette.panelMutedTextClassName || "text-slate-600"}`}>
                           <span>Tax {!hasServerPricing && taxRate ? `(${taxRate}%)` : ""}</span>
                           <span>INR {taxAmount.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between font-extrabold text-slate-900">
+                        <div className={`flex justify-between font-extrabold ${statusPalette.panelTextClassName || "text-slate-900"}`}>
                           <span>Total</span>
                           <span>INR {totalFinal.toFixed(2)}</span>
                         </div>
