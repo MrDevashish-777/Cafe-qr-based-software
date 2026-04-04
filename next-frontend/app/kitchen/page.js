@@ -583,7 +583,7 @@ export default function KitchenPage() {
               <Card
                 className={`overflow-hidden shadow-lg transition ${statusPalette.card}`}
               >
-                <CardContent className="p-0">
+                <CardContent className={`p-0 ${statusPalette.body || ""}`}>
                   <div
                     className={`flex flex-wrap items-start justify-between gap-3 border-b px-4 py-4 sm:px-5 ${statusPalette.header}`}
                   >
@@ -619,7 +619,7 @@ export default function KitchenPage() {
                   </div>
 
                   <div className="px-4 pb-3 pt-3 sm:px-5">
-                  <div className="max-h-[min(22rem,50vh)] space-y-2 overflow-y-auto overscroll-contain rounded-xl border border-slate-100 bg-slate-50/80 p-3 text-sm [scrollbar-gutter:stable]">
+                  <div className={`max-h-[min(22rem,50vh)] space-y-2 overflow-y-auto overscroll-contain rounded-xl border p-3 text-sm [scrollbar-gutter:stable] ${statusPalette.panel || "border-slate-100 bg-slate-50/80"}`}>
                     {(Array.isArray(o.items) ? o.items : []).map((it, idx) => (
                       <div
                         key={idx}
@@ -661,7 +661,7 @@ export default function KitchenPage() {
                     const taxAmount = hasServerPricing ? Number(o.taxAmount) : subtotal * (taxRate / 100);
                     const totalFinal = hasServerPricing ? Number(o.totalAmount || 0) : subtotal + taxAmount;
                     return (
-                      <div className="mt-3 space-y-1 rounded-xl border border-slate-100 bg-white/90 px-3 py-2 text-sm">
+                      <div className={`mt-3 space-y-1 rounded-xl border px-3 py-2 text-sm ${statusPalette.panel || "border-slate-100 bg-white/90"}`}>
                         <div className="flex justify-between text-slate-600">
                           <span>Subtotal</span>
                           <span className="tabular-nums">₹{subtotal.toFixed(2)}</span>
