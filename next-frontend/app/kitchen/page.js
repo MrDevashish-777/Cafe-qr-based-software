@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "../../lib/api";
 import { isOrderInLocalToday, ordersTodayQueryString } from "../../lib/staffOrderRange";
@@ -22,7 +22,8 @@ import { getCafeWithCache } from "../../lib/cafeClient";
 import { getMenuWithCache } from "../../lib/menuClient";
 import { getOrderStatusPalette } from "../../lib/orderStatusPalette";
 import { groupOrdersByTable } from "../../lib/orderGrouping";
-import { ChevronDown, ClipboardList, QrCode } from "lucide-react";
+import { TableStatusPad } from "../../components/staff/TableStatusPad";
+import { ChevronDown, ClipboardList, QrCode, X } from "lucide-react";
 
 function formatKitchenPhone(phone) {
   const s = String(phone || "").trim();
@@ -119,6 +120,9 @@ export default function KitchenPage() {
   const [orderDraft, setOrderDraft] = useState(() => createEmptyOrderDraft());
   const [editorSaving, setEditorSaving] = useState(false);
   const [expandedTables, setExpandedTables] = useState({});
+  const [selectedTableKey, setSelectedTableKey] = useState("");
+  const [blinkingTables, setBlinkingTables] = useState({});
+  const tableCardRefs = useRef({});
 
   const stats = useMemo(() => {
     const total = orders.length;
@@ -167,6 +171,11 @@ export default function KitchenPage() {
   }, [menuItems, menuSearch]);
 
   const groupedFilteredOrders = useMemo(() => groupOrdersByTable(filteredOrders), [filteredOrders]);
+  const groupedOrders = useMemo(() => groupOrdersByTable(orders), [orders]);
+  const selectedGroup = useMemo(
+    () => groupedOrders.find((group) => group.tableKey === selectedTableKey) || null,
+    [groupedOrders, selectedTableKey]
+  );
 
   const draftEstimate = useMemo(() => {
     const lineSubtotal = orderDraft.items.reduce((sum, line) => {
@@ -259,6 +268,10 @@ export default function KitchenPage() {
         setOrders((prev) => prev.filter((o) => o._id !== order._id));
         return;
       }
+      const tableNumber = Number(order?.tableNumber || 0);
+      if (tableNumber > 0) {
+        setBlinkingTables((prev) => ({ ...prev, [tableNumber]: true }));
+      }
       setOrders((prev) => upsertOrder(prev, order));
     };
     const onNewOrder = (order) => {
@@ -280,6 +293,12 @@ export default function KitchenPage() {
       socket.disconnect();
     };
   }, [cafeId]);
+
+  useEffect(() => {
+    if (selectedTableKey && !selectedGroup) {
+      setSelectedTableKey("");
+    }
+  }, [selectedGroup, selectedTableKey]);
 
   const setStatus = async (orderId, status) => {
     setLoading(true);
@@ -334,6 +353,25 @@ export default function KitchenPage() {
   const toggleTableExpanded = (tableKey) => {
     setExpandedTables((prev) => ({ ...prev, [tableKey]: !prev[tableKey] }));
   };
+
+  const openTableOrders = useCallback((tableSelection) => {
+    const tableKey = tableSelection?.tableKey;
+    const tableNumber = Number(tableSelection?.tableNumber || 0);
+    if (!tableKey || !tableSelection?.hasOrders) return;
+
+    setSelectedTableKey(tableKey);
+    setExpandedTables((prev) => ({ ...prev, [tableKey]: true }));
+    if (tableNumber > 0) {
+      setBlinkingTables((prev) => ({ ...prev, [tableNumber]: false }));
+    }
+
+    window.setTimeout(() => {
+      const node = tableCardRefs.current?.[tableKey];
+      if (node && typeof node.scrollIntoView === "function") {
+        node.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 160);
+  }, []);
 
   const addDraftItem = () => {
     const firstMenuItemId = filteredMenuItems[0]?._id
@@ -576,7 +614,18 @@ export default function KitchenPage() {
         {error && <div className="text-red-700 font-semibold">{error}</div>}
         {menuError && <div className="text-red-700 font-semibold">{menuError}</div>}
 
-        <div className="grid grid-cols-1 items-start gap-2.5 xl:grid-cols-2 2xl:grid-cols-3">
+        <TableStatusPad
+          title="Table dial pad"
+          subtitle="Blinking tables have new activity. Click a table number to open its orders in a popup."
+          totalTables={cafeInfo?.numberOfTables}
+          groups={groupedOrders}
+          expandedTables={expandedTables}
+          onSelectTable={openTableOrders}
+          blinkingTableNumbers={blinkingTables}
+          selectedTableNumber={selectedGroup?.tableNumber}
+        />
+
+        {false && <div className="grid grid-cols-1 items-start gap-2.5 xl:grid-cols-2 2xl:grid-cols-3">
           {groupedFilteredOrders.map((group) => {
             const latestOrder = group.latestOrder;
             const groupedStatus =
@@ -590,6 +639,9 @@ export default function KitchenPage() {
             return (
               <motion.div
                 key={group.tableKey}
+                ref={(node) => {
+                  if (node) tableCardRefs.current[group.tableKey] = node;
+                }}
                 initial={motionInitial}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
@@ -921,7 +973,7 @@ export default function KitchenPage() {
             </motion.div>
             );
           })}
-        </div>
+        </div>}
 
         {!loading && cafeId && groupedFilteredOrders.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-8 text-center text-slate-700">
@@ -930,6 +982,162 @@ export default function KitchenPage() {
               : "No active orders on the board yet."}
           </div>
         )}
+        {selectedGroup ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[2px]">
+            <button type="button" aria-label="Close table orders" className="absolute inset-0" onClick={() => setSelectedTableKey("")} />
+            <div className="relative z-10 max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-slate-200/90 bg-gradient-to-br from-white via-orange-50/30 to-slate-50 shadow-[0_30px_90px_-30px_rgba(15,23,42,0.45)]">
+              <div className="border-b border-slate-200/90 bg-white/85 px-5 py-5 backdrop-blur-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.28em] text-orange-700">Kitchen Order View</div>
+                    <div className="mt-1 text-2xl font-black tracking-tight text-slate-950">Table {selectedGroup.tableNumber}</div>
+                    <div className="mt-2 text-sm text-slate-600">
+                      {selectedGroup.customerNames.length ? selectedGroup.customerNames.join(", ") : "Guest"}
+                    </div>
+                  </div>
+                  <Button variant="outline" onClick={() => setSelectedTableKey("")} iconLeft={<X className="h-4 w-4" />}>
+                    Close
+                  </Button>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-900">
+                    {selectedGroup.orders.length} active orders
+                  </div>
+                  <div className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                    {selectedGroup.phones.length ? selectedGroup.phones.map((phone) => formatKitchenPhone(phone)).join(" • ") : "No phone"}
+                  </div>
+                </div>
+              </div>
+              <div className="max-h-[calc(90vh-124px)] overflow-y-auto p-3 sm:p-4">
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                {selectedGroup.orders.map((o, index) => {
+                  const orderPalette = getOrderStatusPalette(o.status);
+                  const itemCount = (Array.isArray(o.items) ? o.items : []).reduce((sum, item) => sum + Number(item?.qty || 0), 0);
+                  return (
+                    <div key={o._id} className="overflow-hidden rounded-[1.25rem] border border-slate-200/90 bg-white shadow-[0_18px_45px_-32px_rgba(15,23,42,0.5)]">
+                      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 bg-slate-50/80 px-3 py-3">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-orange-900">
+                              Customer {index + 1}
+                            </div>
+                            <div className="text-[15px] font-black leading-tight text-slate-950">Order #{String(o._id).slice(-6)}</div>
+                            <div className={`rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${orderPalette.pillClassName || ""}`} style={orderPalette.pillStyle}>
+                              {orderPalette.normalized || o.status}
+                            </div>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-[13px] text-slate-600">
+                            <span className="font-semibold text-slate-900">{o.customerName || "Guest"}</span>
+                            <span>{formatKitchenPhone(o.phone)}</span>
+                            <span>{itemCount} items</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-3">
+                        <div className="overflow-hidden rounded-xl border border-slate-200">
+                          <div className="grid grid-cols-[1fr_auto_auto] gap-2 bg-slate-100 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                            <span>Item</span>
+                            <span>Qty</span>
+                            <span>Total</span>
+                          </div>
+                          <div className="divide-y divide-slate-100">
+                            {(Array.isArray(o.items) ? o.items : []).map((it, idx) => (
+                              <div key={idx} className="grid grid-cols-[1fr_auto_auto] gap-2 px-3 py-2 text-[13px]">
+                                <div className="min-w-0">
+                                  <div className="break-words font-bold text-slate-900">{lineItemLabel(it)}</div>
+                                  <div className="mt-0.5 text-[11px] text-slate-500">Rs {Number(it?.price || 0).toFixed(0)} each</div>
+                                </div>
+                                <div className="text-right font-semibold text-slate-700">{Number(it?.qty || 0)}</div>
+                                <div className="text-right font-black tabular-nums text-slate-900">Rs {lineItemTotal(it).toFixed(0)}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 lg:grid-cols-[minmax(0,1fr)_13rem]">
+                          <div className="space-y-2">
+                            {o.paymentMode ? (
+                              <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/70 px-3 py-2 text-[13px] text-emerald-950">
+                                <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-emerald-700">Payment</div>
+                                <div className="mt-1 font-bold">{String(o.paymentMode).toUpperCase()}</div>
+                              </div>
+                            ) : null}
+                            {o.notes ? (
+                              <div className="rounded-xl border border-amber-200/90 bg-amber-50/90 px-3 py-2 text-[13px] text-amber-950">
+                                <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-amber-800">Order Note</div>
+                                <div className="mt-1 whitespace-pre-wrap break-words font-semibold leading-snug">{o.notes}</div>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                            {(() => {
+                              const lineSum = (Array.isArray(o.items) ? o.items : []).reduce(
+                                (s, it) => s + Number(it.price || 0) * Number(it.qty || 0),
+                                0
+                              );
+                              const hasServerPricing = typeof o.subtotalAmount === "number" && typeof o.taxAmount === "number";
+                              const subtotal = hasServerPricing ? Number(o.subtotalAmount) : Number(o.totalAmount || lineSum);
+                              const discount = typeof o.discountAmount === "number" ? Number(o.discountAmount) : 0;
+                              const taxRate = Number(cafeInfo?.taxPercent || 0);
+                              const taxAmount = hasServerPricing ? Number(o.taxAmount) : subtotal * (taxRate / 100);
+                              const totalFinal = hasServerPricing ? Number(o.totalAmount || 0) : subtotal + taxAmount;
+                              return (
+                                <div className="space-y-1.5 text-[13px]">
+                                  <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-slate-500">Bill Summary</div>
+                                  <div className="flex items-center justify-between text-slate-600">
+                                    <span>Subtotal</span>
+                                    <span className="font-bold tabular-nums text-slate-900">Rs {subtotal.toFixed(0)}</span>
+                                  </div>
+                                  {discount > 0 ? (
+                                    <div className="flex items-center justify-between text-slate-600">
+                                      <span>Discount</span>
+                                      <span className="font-bold tabular-nums text-slate-900">- Rs {discount.toFixed(0)}</span>
+                                    </div>
+                                  ) : null}
+                                  <div className="flex items-center justify-between text-slate-600">
+                                    <span>Tax {!hasServerPricing && taxRate ? `(${taxRate}%)` : ""}</span>
+                                    <span className="font-bold tabular-nums text-slate-900">Rs {taxAmount.toFixed(0)}</span>
+                                  </div>
+                                  <div className="border-t border-slate-200 pt-1.5">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-extrabold text-slate-950">Total</span>
+                                      <span className="font-black tabular-nums text-slate-950">Rs {totalFinal.toFixed(0)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                          <Button variant="outline" size="sm" className="w-full justify-center py-1.5 text-[11px] font-extrabold" type="button" onClick={() => openEditOrderEditor(o)} disabled={loading || editorSaving}>
+                            Edit
+                          </Button>
+                          <Button variant="outline" size="sm" className="w-full justify-center py-1.5 text-[11px] font-extrabold" onClick={() => setStatus(o._id, "accepted")} disabled={loading}>
+                            Accept
+                          </Button>
+                          <Button variant="outline" size="sm" className="w-full justify-center py-1.5 text-[11px] font-extrabold" onClick={() => setStatus(o._id, "preparing")} disabled={loading}>
+                            Preparing
+                          </Button>
+                          <Button variant="outline" size="sm" className="w-full justify-center py-1.5 text-[11px] font-extrabold" onClick={() => setStatus(o._id, "ready")} disabled={loading}>
+                            Ready
+                          </Button>
+                          <Button variant="danger" size="sm" className="w-full justify-center py-1.5 text-[11px] font-extrabold" onClick={() => setStatus(o._id, "rejected")} disabled={loading}>
+                            Reject
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {editorOpen ? (
